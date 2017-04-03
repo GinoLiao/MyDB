@@ -16,7 +16,8 @@ def Display():
 	print ("Display")
 
 if __name__ == "__main__":
-	print ("Welcome to the database user system!\n")
+	print ("Welcome to the database user system!\n\
+")
 	while True:
 		print ("What do you want?\n\
 1.Load a file into the database\n\
