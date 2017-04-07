@@ -25,9 +25,9 @@ CREATE TABLE Org (
     is_univ BOOLEAN,
     PRIMARY KEY (id),
     --one name corresponds to only one org or one university
+    --dont allow two ids with same name that one is a univ and another is an org
     CONSTRAINT un_name_is_univ UNIQUE(name, is_univ)
 );
-
 
 CREATE TABLE Meet (
     name VARCHAR(20),
@@ -45,6 +45,7 @@ CREATE TABLE Participant (
     id VARCHAR(10),
     gender VARCHAR(1) NOT NULL,
     org_id VARCHAR(10) NOT NULL,
+    name VARCHAR(20),
     PRIMARY KEY (id),
     FOREIGN KEY (org_id) REFERENCES Org (id),
     CONSTRAINT chk_gender CHECK (gender IN ('M', 'F'))
@@ -118,6 +119,9 @@ CREATE TABLE Swim (
 );
 
 
+
+
+--CRUD operations
 
 
 

@@ -22,29 +22,20 @@ class SwimMeetDBApp(cmd.Cmd):
             cur = conn.cursor()
             print("Success!")
         except:
-            print("Connection failed, check your inputs")
-        while True:
-            print ("What do you want?\n1.Load a file into the database\n2.Save the data into a file\n\
-3.Modify the data in the database\n4.Display a heat sheet\n(Please enter the number of your choice or enter q to exit)")
-		choice = input ()
-		if choice == "1":
-			Read ()
-		elif choice == "2":
-			Save ()
-		elif choice == "3":
-			Modify ()
-		elif choice == "4":
-			Display ()
-		elif choice == "q":
-			break
-		else:
-			print ("Input error! Please try again...")
+            print("Connection failed, check your inputs")				
 
     def help_connect(self):
         print ('\n'.join([ 'connect [hostname] [dbname] [username] [password]',
                            'Connect to the database',
                            ]) )
 
+    def do_q(self):
+        # Make the changes to the database persistent
+        conn.commit()
+
+        # Close communication with the database
+        cur.close()
+        conn.close()
     #read csv
 
 
