@@ -1,25 +1,40 @@
 import cmd
 import psycopg2
-
+import shlex
+import datetime
+import csv
 
 class SwimMeetDBApp(cmd.Cmd):
-    """Simple command processor example."""
+    """Swim Meeting Database application."""
     intro = 'Welcome to the Swim Meeting DB shell.  Type help or ? to list commands.\nConnect to your DB by using command:\nconnect [hostname] [dbname] [username] [password]'
     prompt = '(swim) '
     file = None
-
-    conn = None
-    cur = None
+    lendict={'Org':3, 'Meet':4, 'Participant':4, 'Stroke':1,
+            'Distance':1, 'Leg':1, 'Event':3, 'StrokeOf':3,
+            'Heat':3, 'Swim':6}
+   
+    #params = None   #connection parameters
+    params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
+    
+    
     #connect to db
     def do_connect(self, args):
-        l = args.split()
+        print(args)
+        print(type(args))
+        
+        l = shlex.split(args)
+        print(l[0])
+        print(l[1])
         if len(l)!=4:
             print("*** invalid number of arguments.\nconnect [hostname] [dbname] [username] [password]")
             return
         try:
-            addr = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
-            conn = psycopg2.connect(addr)
+            #self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
+            conn = psycopg2.connect(self.params)
             cur = conn.cursor()
+            conn.commit()
+            cur.close()
+            conn.close()
             print("Success!")
         except:
             print("Connection failed, check your inputs")				
@@ -28,15 +43,602 @@ class SwimMeetDBApp(cmd.Cmd):
         print ('\n'.join([ 'connect [hostname] [dbname] [username] [password]',
                            'Connect to the database',
                            ]) )
+    
+    #########################################
+    #########################################
+    #############Upsert Functions############
+    #########################################
+    #########################################
 
-    def do_q(self):
-        # Make the changes to the database persistent
-        conn.commit()
+    #update or insert an organization or university
+    def do_upsertOrg(self, args):
+        l = shlex.split(args)
+        if len(l)!=3:
+            print("*** invalid number of arguments.")
+            return
+        id = l[0]
+        name = l[1]
+        if l[2]=="NULL" or l[2].lower() not in ['true', 'false']:
+            print('[is_univ] cannot be NULL. \n')
+            print('Please enter "true" or "false" for [is_univ] field')
+            return
+        is_univ = l[2]
+        #connect and upsert
+        self.upsert('Org', l)
 
-        # Close communication with the database
-        cur.close()
-        conn.close()
+
+    def help_upsertOrg(self):
+        print ('\n'.join([ '',
+                           'upsertOrg [org_id] [name] [is_univ]',
+                           'Update or insert a new organization',
+                           'Primary key (org_id)',
+                           '[org_id]: id of the organization or university',
+                           '[name]: name of the organization or university',
+                           '      If the name includes space, using quotation marks',
+                           '      i.e. upsertOrg O001 "Rice University" true',
+                           '[is_univ]: TRUE for university, FALSE for organization',
+                           '         this field is case-insensitive',
+                           ]) )
+
+    #update or insert a Meet info
+    def do_upsertMeet(self, args):
+        l = shlex.split(args)
+        if len(l)!=4:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        name = l[0]
+        start_date = l[1]
+        #check for valid date input
+        if start_date != "":  
+            try:
+                datetime.datetime.strptime(start_date, '%Y-%m-%d')
+            except ValueError:
+                print("Incorrect data format, should be YYYY-MM-DD")
+                return
+
+        if l[2] != "":      
+            try:
+                a = int(l[2])
+                if a <= 0:
+                    print("[num_days] should be an integer larger than 0")
+                    return
+            except ValueError:
+                print("Incorrect data format, [num_days] should be an integer")
+                return
+        num_days = l[2]
+        org_id = l[3]
+        #connect and upsert
+        self.upsert('Meet', l)
+
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertMeet', (name, start_date, num_days, org_id,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertMeet(self):
+        print ('\n'.join([ '',
+                           'upsertMeet [org_id] [name] [is_univ]',
+                           'Update or insert a new Meet info',
+                           'Primary key (name)',
+                           '[name]: name of the Swim Meeting',
+                           '      If the name includes space, using quotation marks',
+                           '      i.e. upsertMeet xxx "Rice University" xxx xxx',
+                           '[start_date]: YYYY-MM-DD',
+                           '              start date of the Swim Meeting',
+                           '[num_days]: number of days of this Swim Meeting',
+                           '            Please enter a number larger than 0',
+                           '[org_id]: id of the organization or university',
+                           ]) )
+
+
+    #Update or insert a participant info
+    def do_upsertParticipant(self, args):
+        l = shlex.split(args)
+        if len(l)!=4:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        id = l[0]
+        gender = l[1]
+        #check for valid date input
+        #gender should not be null
+        if gender not in ['M', 'F']:
+            print("[gender] should be either 'M' or 'F'. ")
+            return 
+
+        #org_id should not be null      
+        org_id = l[2]
+
+        name = l[3]
+
+        #connect and upsert
+        self.upsert('Participant', l)
+        
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertParticipant', (id, gender, org_id, name,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertParticipant(self):
+        print ('\n'.join([ '',
+                           'upsertParticipant [id] [gender] [org_id] [name]',
+                           'Update or insert a participant info',
+                           'Primary key (id)',
+                           '[id]: id of the participant',
+                           '[gender]: gender of the swimming',
+                           '          [gender] should be either "M" or "F".',
+                           '[org_id]: id of the university of this participant',
+                           '[name]: name of this participant',
+                           '      If the name includes space, using quotation marks',
+                           '      i.e. upsertParticipant xxx xxx xxx "first_name last_name"',
+                           ]) )
+
+
+
+    #Update or insert a participant info
+    def do_upsertLeg(self, args):
+        l = shlex.split(args)
+        if len(l)!=1:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        leg = args
+        
+        #leg should be an integer larger than 0
+        try:
+            a = int(leg)
+            if a <= 0:
+                print("[leg] should be an integer larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [leg] should be an integer")
+            return
+
+        #connect and upsert
+        self.upsert('Leg', l)
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertLeg', (leg,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertLeg(self):
+        print ('\n'.join([ '',
+                           'upsertLeg [leg]',
+                           'Update or insert a Leg',
+                           'Primary key (leg)',
+                           '[leg]: a possible number of the legs in relay races',
+                           '       [leg] should be an integer larger than 0.',
+                           ]) )
+
+
+    #Update or insert a participant info
+    def do_upsertStroke(self, args):
+        l = shlex.split(args)
+        if len(l)!=1:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        stroke = args
+        #connect and upsert
+        self.upsert('Stroke', l)
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertStroke', (stroke,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertStroke(self):
+        print ('\n'.join([ '',
+                           'upsertStroke [stroke]',
+                           'Update or insert a Stroke',
+                           'Primary key (stroke)',
+                           '[stroke]: a possible stroke in Swim Meeting',
+                           ]) )
+
+
+
+    #Update or insert a participant info
+    def do_upsertDistance(self, args):
+        l = shlex.split(args)
+        if len(l)!=1:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        distance = args
+        #connect and upsert
+        self.upsert('Distance', l)
+        '''
+        #distance should be an integer larger than 0
+        try:
+            a = int(distance)
+            if a <= 0:
+                print("[distance] should be an integer larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [distance] should be an integer")
+            return
+        
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertDistance', (distance,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertDistance(self):
+        print ('\n'.join([ '',
+                           'upsertLeg [distance]',
+                           'Update or insert a distance',
+                           'Primary key (distance)',
+                           '[distance]: a possible distance of races in the Swim Meeting',
+                           '            [distance] should be an integer larger than 0.',
+                           ]) )
+
+
+
+    #Update or insert a participant info
+    def do_upsertEvent(self, args):
+        l = shlex.split(args)
+        if len(l)!=3:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        id = l[0]
+        gender = l[1]
+        #check for valid date input
+        #gender should not be null
+        if gender not in ['M', 'F']:
+            print("[gender] should be either 'M' or 'F'. ")
+            return 
+
+        #distance should not be null      
+        distance = l[2]
+        #distance should be an integer larger than 0
+        try:
+            a = int(distance)
+            if a <= 0:
+                print("[distance] should be an integer larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [distance] should be an integer")
+            return
+
+
+        #connect and upsert
+        self.upsert('Event', l)
+
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertEvent', (id, gender, distance,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertEvent(self):
+        print ('\n'.join([ '',
+                           'upsertEvent [id] [gender] [distance]',
+                           'Update or insert an Event info',
+                           'Primary key (id)',
+                           '[id]: id of the Event',
+                           '[gender]: gender of the Event',
+                           '          [gender] should be either "M" or "F".',
+                           '[distance]: distance of this event. SHOULD NOT BE NULL',
+                           '            [distance] should be an integer larger than 0.',
+                           ]) )
+
+
+
+
+    #Update or insert a participant info
+    def do_upsertStrokeOf(self, args):
+        l = shlex.split(args)
+        if len(l)!=3:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        event_id = l[0]
+        leg = l[1]
+        #leg should be an integer larger than 0
+        try:
+            a = int(leg)
+            if a <= 0:
+                print("[leg] should be an integer larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [leg] should be an integer")
+            return
+
+        #stroke should not be null    
+        stroke = l[2]
+
+        #connect and upsert
+        self.upsert('StrokeOf', l)
+
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertStrokeOf', (event_id, leg, stroke,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertStrokeOf(self):
+        print ('\n'.join([ '',
+                           'upsertEvent [event_id] [leg] [stroke]',
+                           'Update or insert stroke of a leg of a particular event',
+                           'Primary key (event_id, leg)',
+                           '[event_id]: id of the Event',
+                           '[leg]: a possible number of the legs in relay races',
+                           '       [leg] should be an integer larger than 0.',
+                           '[stroke]: stroke of this leg of this event. SHOULD NOT BE NULL',
+                           ]) )
+
+
+
+
+    #Update or insert a participant info
+    def do_upsertHeat(self, args):
+        l = shlex.split(args)
+        if len(l)!=3:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        #all 3 fields should not be bull
+        id = l[0]
+        event_id = l[1] 
+        meet_name = l[2]
+
+        #connect and upsert
+        self.upsert('Heat', l)
+
+        '''
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertHeat', (id, event_id, meet_name,))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()'''
+                
+
+    def help_upsertHeat(self):
+        print ('\n'.join([ '',
+                           'upsertHeat [id] [event_id] [meet_name] ',
+                           'Update or insert a particular heat.',
+                           'Heat is a weak entity.',
+                           'Primary key (id, event_id, meet_name)',
+                           '[id]: weak id of a heat',
+                           '[event_id]: id of the Event',
+                           '[meet_name]: name of the Swim Meeting',
+                           ]) )
+
+
+
+
+    #Update or insert a participant info
+    def do_upsertSwim(self, args):
+        l = shlex.split(args)
+        if len(l)!=6:
+            print("*** invalid number of arguments.")
+            return
+        conn = None
+        #all 4 PK fields should not be bull
+        heat_id = l[0]
+        event_id = l[1] 
+        meet_name = l[2]
+        participant_id = l[3]
+
+        leg = l[4]
+        #leg should be an integer larger than 0
+        try:
+            a = int(leg)
+            if a <= 0:
+                print("[leg] should be an integer larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [leg] should be an integer")
+            return
+
+        t = l[5]
+        #if time is not null
+        #time should be a number larger than 0
+        try:
+            t = float(t)    #convert to float number
+            if t <= 0:
+                print("[time] should be a number larger than 0")
+                return
+        except ValueError:
+            print("Incorrect data format, [time] should be a number")
+            return
+
+
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('upsertSwim', (heat_id, event_id, meet_name, participant_id, leg, t))
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+                
+
+    def help_upsertSwim(self):
+        print ('\n'.join([ '',
+                           'upsertSwim [heat_id] [event_id] [meet_name] [participant_id] [leg] [t]',
+                           'Update or insert result of a participant in a particular heat.',
+                           'Primary key (heat_id, event_id, meet_name, participant_id)',
+                           '[heat_id]: heat id of a particular event in a particular Swim Meeting',
+                           '[event_id]: id of the Event',
+                           '[meet_name]: name of the Swim Meeting',
+                           '[participant_id]: id of the participant',
+                           '[leg]: the leg that this swimmer participates. SHOULD NOT BE NULL',
+                           '[time]: the finish time of this participant',
+                           ]) )
+
+
+
+
+
+    #########################################
+    #########################################
+    #############Get Info Functions##########
+    #########################################
+    #########################################
+
+    #get info of an organization or university
+    def do_getOrg(self, org_id):
+        conn = None
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc('GetOrg', (org_id,))
+            #print result
+            rows = cur.fetchall()
+            for row in rows:
+                print(row)
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def help_getOrg(self):
+        print ('\n'.join([ '',
+                           'getOrg [org_id]',
+                           'Get the information of the organization or university',
+                           '[org_id]: id of the organization or university',
+                           ]) )
+
+
+
     #read csv
+    def do_readCSV(self, args):
+        l = shlex.split(args)
+        if len(l)!=1:
+            print("*** invalid number of arguments. Should be 1.")
+            return
+        path = args
+        try:
+            with open(path, newline='') as csvfile:
+                spamreader = csv.reader(csvfile, delimiter=',')
+                curTable = None
+                for row in spamreader:
+                    if(row[0].startswith("*")):
+                        print(row[0].strip(',*'))
+                        curTable = row[0].strip(',*')
+                    else:
+                        #length = 4
+                        #newrow = row[:length]
+                        #print(newrow)
+                        #print(parameters)
+                        self.upsert(curTable, row)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+            print("Please check your input path.")
+
+
+    def help_readCSV(self):
+        print ('\n'.join([ '',
+                           'readCSV [path]',
+                           'Read CSV file and insert or update data to database.',
+                           '[path]: path of the target CSV file',
+                           ]) )
+
+
+
+    '''update or insert data in the row to the table.'''
+    def upsert(self, table, row):
+        conn = None
+        function_name = 'upsert' + table
+        length = self.lendict[table]
+        if table != 'Swim':
+            return
+        print(row[:length])
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc(function_name, row[:length])
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
 
 
     #save to csv
