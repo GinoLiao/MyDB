@@ -10,10 +10,21 @@ class SwimMeetDBApp(cmd.Cmd):
     intro = 'Welcome to the Swim Meeting DB shell.  Type help or ? to list commands.\nConnect to your DB by using command:\nconnect [hostname] [dbname] [username] [password]'
     prompt = '(swim) '
     file = None
+    #length of parameters in table
     lendict={'Org':3, 'Meet':4, 'Participant':4, 'Stroke':1,
             'Distance':1, 'Leg':1, 'Event':3, 'StrokeOf':3,
             'Heat':3, 'Swim':6}
-   
+    #length of primary keys in table
+    pk_lendict={'Org':1, 'Meet':1, 'Participant':1, 'Stroke':1,
+            'Distance':1, 'Leg':1, 'Event':1, 'StrokeOf':2,
+            'Heat':3, 'Swim':4}
+    #tables names in insert order
+    #this ensures we write CSV file in correct order so that when user 
+    #read the written CSV file, he or she can read and insert tables to
+    #DB in the default order of written CSV file
+    table_names = ['Org', 'Meet', 'Participant', 'Leg',
+                 'Stroke', 'Distance', 'Event', 'StrokeOf',
+                 'Heat', 'Swim']
     #params = None   #connection parameters
     params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
     
@@ -105,7 +116,7 @@ class SwimMeetDBApp(cmd.Cmd):
         conn = None
         name = l[0]
         #check for valid date input
-        if l[1] != "" or l[1] != 'NULL':  
+        if l[1] not in ['', 'NULL']:  
             try:
                 datetime.datetime.strptime(l[1], '%Y-%m-%d')
             except ValueError:
@@ -114,7 +125,7 @@ class SwimMeetDBApp(cmd.Cmd):
         start_date = l[1]
 
         #check for valid num_days
-        if l[2] != "" or l[2] != 'NULL':      
+        if l[2] not in ['', 'NULL']:      
             try:
                 a = int(l[2])
                 if a <= 0:
@@ -479,6 +490,35 @@ class SwimMeetDBApp(cmd.Cmd):
                            ]) )
 
 
+    '''update or insert data in the row to the table.'''
+    def upsert(self, table, row):
+        conn = None
+        function_name = 'Upsert' + table
+        length = self.lendict[table]
+        # if table != 'Swim':
+        #     return
+
+        #convert empty string or 'NULL' to None
+        for i in range(length):
+            if row[i]=='' or row[i]=='NULL':
+                row[i] = None
+
+        #type cast for float value in 'Swim'
+        if table == 'Swim' and row[5] != None:
+            row[5] = float(row[5])
+        #print(row[:length])
+        try:
+            conn = psycopg2.connect(self.params)
+            cur = conn.cursor()
+            cur.callproc(function_name, row[:length])
+            conn.commit()
+            # close the communication with the PostgreSQL database server
+            cur.close()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
 
 
 
@@ -491,12 +531,32 @@ class SwimMeetDBApp(cmd.Cmd):
     '''
     get info of an organization or university
     '''
-    def do_getOrg(self, org_id):
+    def do_get(self, args):
+        l = shlex.split(args)
+        #No fields can be null or empty
+        if '' in l or 'NULL' in l:
+            print('No fields in get command can be empty or NULL.')
+            return
+
+        if len(l) < 2:
+            print("Please input parameters.")
+            return
+
+        table = l[0]
+        if table not in self.pk_lendict.keys():
+            print("Please enter a valid table name.")
+            return
+
+        if len(l) != self.pk_lendict[table] + 1:
+            print("*** invalid number of arguments.")
+            return
+
         conn = None
+        function_name = 'Get' + table
         try:
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
-            cur.callproc('GetOrg', (org_id,))
+            cur.callproc(function_name, l[1:])
             #print result
             rows = cur.fetchall()
             for row in rows:
@@ -508,13 +568,22 @@ class SwimMeetDBApp(cmd.Cmd):
             if conn is not None:
                 conn.close()
 
-    def help_getOrg(self):
+    def help_get(self):
         print ('\n'.join([ '',
-                           'getOrg [org_id]',
-                           'Get the information of the organization or university',
-                           '[org_id]: id of the organization or university',
+                           'getOrg [table] [param1] [param2] ...',
+                           'Call a function to get information of the table',
+                           '[table]: name of the table',
+                           '         choices includes:',
+                           '         Org, Meet, Participant, Stroke, Leg,',
+                           '         Distance, Event, StrokeOf, Heat, Swim',
                            ]) )
 
+
+    #########################################
+    #########################################
+    #############Read CSV Functions##########
+    #########################################
+    #########################################
 
     '''
     read csv, assuming the data file is valid. No error checking
@@ -532,7 +601,7 @@ class SwimMeetDBApp(cmd.Cmd):
                 count=0
                 for row in spamreader:
                     if(row[0].startswith("*")):
-                        print("count: %d", count)
+                        print("count: ", count)
                         count=0
                         print(row[0].strip(',*'))
                         curTable = row[0].strip(',*')
@@ -544,9 +613,11 @@ class SwimMeetDBApp(cmd.Cmd):
                         #print(parameters)
                         count+=1
                         self.upsert(curTable, row)
+                print("count: ", count)
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             print("Please check your input path.")
+
 
 # readCSV hw6.csv
     def help_readCSV(self):
@@ -558,46 +629,84 @@ class SwimMeetDBApp(cmd.Cmd):
 
 
 
-    '''update or insert data in the row to the table.'''
-    def upsert(self, table, row):
+    #########################################
+    #########################################
+    ##########Save to CSV Functions##########
+    #########################################
+    #########################################
+    '''
+    writeCSV save.csv
+    save all data to user-provided csv file
+    '''
+    def do_writeCSV(self, args):
+        l = shlex.split(args)
+        if len(l)!=1:
+            print("*** invalid number of arguments. Should be 1.")
+            return
+        #Limit the user to save data to CSV file
+        path = args
+        if not path.endswith('.csv'):
+            print("The input path should point to a CSV file. ")
+            return
+
         conn = None
-        function_name = 'upsert' + table
-        length = self.lendict[table]
-        # if table != 'Swim':
-        #     return
+        db_tables = {}
+        #fetch table names and all rows in each table to dict
+        for table in self.table_names:
+            rows = self.callDBFunc('GetAll'+table, [])
+            db_tables[table] = rows
 
-        #convert empty string or 'NULL' to None
-        for i in range(length):
-            if row[i]=='' or row[i]=='NULL':
-                row[i] = None
+        #write DB to file
+        try:
+            with open(path, 'w', newline='') as csvfile:
+                spamwriter = csv.writer(csvfile, delimiter=',')
+                #this ensures we write CSV file in correct order so that when user 
+                #read the written CSV file, he or she can read and insert tables to
+                #DB in the default order of written CSV file
+                for table in self.table_names:
+                    table_name = '*' + table
+                    spamwriter.writerow([table_name]) 
+                    for row in db_tables[table]:
+                        spamwriter.writerow(row)    
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+            print("Please check your input path.")
 
-        #type cast for float value in 'Swim'
-        if table == 'Swim' and row[5] != None:
-            row[5] = float(row[5])
-        print(row[:length])
+# readCSV hw6.csv
+    def help_writeCSV(self):
+        print ('\n'.join([ '',
+                           'writeCSV [path]',
+                           'Write all data in database to user-provided CSV file.',
+                           '[path]: path of the target CSV file',
+                           ]) )
+
+
+    #print results from query
+    def printQuery(self, rows):
+        if rows != None:
+            for row in rows:
+                print(row)
+
+    '''
+    call a function in database
+    params--parameters of the function
+    '''
+    def callDBFunc(self, function_name, params):
+        conn = None
+        res = None
         try:
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
-            cur.callproc(function_name, row[:length])
-            conn.commit()
-            # close the communication with the PostgreSQL database server
+            cur.callproc(function_name, params)
+            #save result
+            res = cur.fetchall()
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             if conn is not None:
                 conn.close()
-
-
-
-    #save to csv
-
-
-    #Modify insert
-
-
-    #modify update
-
+        return res
 
 
     #display heat sheet 

@@ -38,6 +38,7 @@ conn.close()
 
 import csv
 
+'''
 with open('hw6.csv', newline='') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',')
     curTable = None
@@ -50,7 +51,32 @@ with open('hw6.csv', newline='') as csvfile:
                 length = 4
                 newrow = row[:length]
                 print(newrow)
-                parameters = row[0].rstrip(',').split(',')
+                
         # print('\n')
         # print(type(row))
         # print(', '.join(row))
+'''
+
+'''
+with open('save.csv', 'w', newline='') as csvfile:
+    spamwriter = csv.writer(csvfile, delimiter=',')
+    spamwriter.writerow(['Spam'] * 5 + ['Baked Beans'])
+    spamwriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
+    spamwriter.writerow(['*Org'])
+'''
+
+import psycopg2
+
+
+conn = psycopg2.connect("host=localhost dbname=postgres user=ricedb password=zl15ricedb")
+
+cur = conn.cursor()
+
+cur.callproc('GetAllOrg', [])
+rows = cur.fetchall()
+for row in rows:
+    print(row)
+
+
+cur.close()
+conn.close()

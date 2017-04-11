@@ -204,7 +204,7 @@ STABLE;
 --------------------------------------
 
 
---read operations
+--read operations by primary keys
 DROP FUNCTION IF EXISTS GetOrg(VARCHAR(10));
 CREATE OR REPLACE FUNCTION GetOrg (id_value VARCHAR(10))
 RETURNS TABLE (id VARCHAR(10), name VARCHAR(20), is_univ BOOLEAN)
@@ -247,7 +247,7 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetStroke (stroke_value VARCHAR(20));
 CREATE OR REPLACE FUNCTION GetStroke (stroke_value VARCHAR(20))
-RETURNS TABLE (leg INT)
+RETURNS TABLE (stroke VARCHAR(20))
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Stroke WHERE Stroke.stroke = stroke_value;
@@ -257,7 +257,7 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetDistance (distance_value INT);
 CREATE OR REPLACE FUNCTION GetDistance (distance_value INT)
-RETURNS TABLE (leg INT)
+RETURNS TABLE (distance INT)
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Distance WHERE Distance.distance = distance_value;
@@ -322,17 +322,125 @@ STABLE;
 
 
 
+
+
+---read all data from table
+DROP FUNCTION IF EXISTS GetAllOrg();
+CREATE OR REPLACE FUNCTION GetAllOrg ()
+RETURNS TABLE (id VARCHAR(10), name VARCHAR(20), is_univ BOOLEAN)
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Org;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllMeet ();
+CREATE OR REPLACE FUNCTION GetAllMeet ()
+RETURNS TABLE (name VARCHAR(20), start_date DATE, num_days INT, org_id VARCHAR(10))
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Meet;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllParticipant ();
+CREATE OR REPLACE FUNCTION GetAllParticipant ()
+RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), org_id VARCHAR(10), name VARCHAR(20))
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Participant;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllLeg ();
+CREATE OR REPLACE FUNCTION GetAllLeg ()
+RETURNS TABLE (leg INT)
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Leg;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllStroke ();
+CREATE OR REPLACE FUNCTION GetAllStroke ()
+RETURNS TABLE (stroke VARCHAR(20))
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Stroke;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllDistance ();
+CREATE OR REPLACE FUNCTION GetAllDistance ()
+RETURNS TABLE (distance INT)
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Distance;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllEvent ();
+CREATE OR REPLACE FUNCTION GetAllEvent ()
+RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), distance INT)
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Event;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+DROP FUNCTION IF EXISTS GetAllStrokeOf ();
+CREATE OR REPLACE FUNCTION GetAllStrokeOf ()
+RETURNS TABLE (event_id VARCHAR(10), leg INT, stroke VARCHAR(20))
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM StrokeOf;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+DROP FUNCTION IF EXISTS GetAllHeat ();
+CREATE OR REPLACE FUNCTION GetAllHeat ()
+RETURNS TABLE (id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20))
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Heat;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+DROP FUNCTION IF EXISTS GetAllSwim ();
+CREATE OR REPLACE FUNCTION GetAllSwim ()
+RETURNS TABLE (heat_id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20), participant_id VARCHAR(10), leg INT, t DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY SELECT * FROM Swim;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+
 --------------------------------------
 --------------------------------------
 ----------upsert functions------------
 --------------------------------------
 --------------------------------------
 
-DROP FUNCTION IF EXISTS upsertOrg (
+DROP FUNCTION IF EXISTS UpsertOrg (
     id_value VARCHAR(10), 
     name_value VARCHAR(20), 
     is_univ_value BOOLEAN);
-CREATE OR REPLACE FUNCTION upsertOrg (
+CREATE OR REPLACE FUNCTION UpsertOrg (
     id_value VARCHAR(10), 
     name_value VARCHAR(20), 
     is_univ_value BOOLEAN)
@@ -356,12 +464,12 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertMeet (
+DROP FUNCTION IF EXISTS UpsertMeet (
     name_value VARCHAR(20), 
     start_date_value DATE, 
     num_days_value INT, 
     org_id_value VARCHAR(10));
-CREATE OR REPLACE FUNCTION upsertMeet (
+CREATE OR REPLACE FUNCTION UpsertMeet (
     name_value VARCHAR(20), 
     start_date_value DATE, 
     num_days_value INT, 
@@ -390,12 +498,12 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertParticipant (
+DROP FUNCTION IF EXISTS UpsertParticipant (
     id_value VARCHAR(10), 
     gender_value VARCHAR(1), 
     org_id_value VARCHAR(10), 
     name_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION upsertParticipant (
+CREATE OR REPLACE FUNCTION UpsertParticipant (
     id_value VARCHAR(10), 
     gender_value VARCHAR(1), 
     org_id_value VARCHAR(10), 
@@ -422,8 +530,8 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertLeg (leg_value INT);
-CREATE OR REPLACE FUNCTION upsertLeg (leg_value INT)
+DROP FUNCTION IF EXISTS UpsertLeg (leg_value INT);
+CREATE OR REPLACE FUNCTION UpsertLeg (leg_value INT)
 RETURNS VOID
 AS $$
     DECLARE 
@@ -439,8 +547,8 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertStroke (stroke_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION upsertStroke (stroke_value VARCHAR(20))
+DROP FUNCTION IF EXISTS UpsertStroke (stroke_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION UpsertStroke (stroke_value VARCHAR(20))
 RETURNS VOID
 AS $$
     DECLARE 
@@ -456,8 +564,8 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertDistance (distance_value INT);
-CREATE OR REPLACE FUNCTION upsertDistance (distance_value INT)
+DROP FUNCTION IF EXISTS UpsertDistance (distance_value INT);
+CREATE OR REPLACE FUNCTION UpsertDistance (distance_value INT)
 RETURNS VOID
 AS $$
     DECLARE 
@@ -473,11 +581,11 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertEvent (
+DROP FUNCTION IF EXISTS UpsertEvent (
     id_value VARCHAR(10), 
     gender_value VARCHAR(1), 
     distance_value INT);
-CREATE OR REPLACE FUNCTION upsertEvent (
+CREATE OR REPLACE FUNCTION UpsertEvent (
     id_value VARCHAR(10), 
     gender_value VARCHAR(1), 
     distance_value INT)
@@ -504,11 +612,11 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertStrokeOf (
+DROP FUNCTION IF EXISTS UpsertStrokeOf (
     event_id_value VARCHAR(10), 
     leg_value INT, 
     stroke_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION upsertStrokeOf (
+CREATE OR REPLACE FUNCTION UpsertStrokeOf (
     event_id_value VARCHAR(10), 
     leg_value INT, 
     stroke_value VARCHAR(20))
@@ -535,11 +643,11 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertHeat (
+DROP FUNCTION IF EXISTS UpsertHeat (
     id_value VARCHAR(10), 
     event_id_value VARCHAR(10), 
     meet_name_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION upsertHeat (
+CREATE OR REPLACE FUNCTION UpsertHeat (
     id_value VARCHAR(10), 
     event_id_value VARCHAR(10), 
     meet_name_value VARCHAR(20))
@@ -562,14 +670,14 @@ LANGUAGE plpgsql;
 
 
 
-DROP FUNCTION IF EXISTS upsertSwim (
+DROP FUNCTION IF EXISTS UpsertSwim (
     heat_id_value VARCHAR(10), 
     event_id_value VARCHAR(10), 
     meet_name_value VARCHAR(20),
     participant_id_value VARCHAR(10),
     leg_value INT,
     t_value DECIMAL);
-CREATE OR REPLACE FUNCTION  upsertSwim (
+CREATE OR REPLACE FUNCTION  UpsertSwim (
     heat_id_value VARCHAR(10), 
     event_id_value VARCHAR(10), 
     meet_name_value VARCHAR(20),
