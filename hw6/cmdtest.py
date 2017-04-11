@@ -3,6 +3,7 @@ import psycopg2
 import shlex
 import datetime
 import csv
+import sys
 
 class SwimMeetDBApp(cmd.Cmd):
     """Swim Meeting Database application."""
@@ -56,13 +57,23 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=3:
             print("*** invalid number of arguments.")
             return
+        #id input should not be null or empty
+        if l[0]=='' or l[0]=='NULL':
+            print('The [id] field of upsertOrg command cannot be empty or NULL.')
+            return
         id = l[0]
         name = l[1]
-        if l[2]=="NULL" or l[2].lower() not in ['true', 'false']:
-            print('[is_univ] cannot be NULL. \n')
+        #is_univ input should not be null or empty
+        if l[2]=='' or l[2]=='NULL':
+            print('The [is_univ] field of upsertOrg command cannot be empty or NULL.')
+            return
+        #is_univ should be either true or false
+        if l[2].lower() not in ['true', 'false']:
             print('Please enter "true" or "false" for [is_univ] field')
             return
         is_univ = l[2]
+        #self.upsert function will convert empty string or 'NULL'
+        #in the [name] field to None
         #connect and upsert
         self.upsert('Org', l)
 
@@ -86,18 +97,24 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=4:
             print("*** invalid number of arguments.")
             return
+        #Leg input should not be null or empty
+        if l[0]=='' or l[0]=='NULL':
+            print('The [name] field of upsertMeet command cannot be empty or NULL.')
+            return
+
         conn = None
         name = l[0]
-        start_date = l[1]
         #check for valid date input
-        if start_date != "":  
+        if l[1] != "" or l[1] != 'NULL':  
             try:
-                datetime.datetime.strptime(start_date, '%Y-%m-%d')
+                datetime.datetime.strptime(l[1], '%Y-%m-%d')
             except ValueError:
                 print("Incorrect data format, should be YYYY-MM-DD")
                 return
+        start_date = l[1]
 
-        if l[2] != "":      
+        #check for valid num_days
+        if l[2] != "" or l[2] != 'NULL':      
             try:
                 a = int(l[2])
                 if a <= 0:
@@ -108,22 +125,11 @@ class SwimMeetDBApp(cmd.Cmd):
                 return
         num_days = l[2]
         org_id = l[3]
+
+        #self.upsert function will convert empty string or 'NULL'
+        #in the last 3 fields to None
         #connect and upsert
         self.upsert('Meet', l)
-
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertMeet', (name, start_date, num_days, org_id,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
                 
 
     def help_upsertMeet(self):
@@ -148,36 +154,27 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=4:
             print("*** invalid number of arguments.")
             return
+
+        #First 3 fields should not be null or empty
+        if '' in l[:3] or 'NULL' in l[:3]:
+            print('First 3 fields of upsertParticipant command cannot be empty or NULL.')
+            return
         conn = None
         id = l[0]
         gender = l[1]
         #check for valid date input
-        #gender should not be null
         if gender not in ['M', 'F']:
             print("[gender] should be either 'M' or 'F'. ")
             return 
-
-        #org_id should not be null      
+     
         org_id = l[2]
 
+        #self.upsert function will convert empty string or 'NULL'in [name] field to None
         name = l[3]
 
         #connect and upsert
         self.upsert('Participant', l)
         
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertParticipant', (id, gender, org_id, name,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
                 
 
     def help_upsertParticipant(self):
@@ -202,9 +199,14 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=1:
             print("*** invalid number of arguments.")
             return
+
+        #Leg input should not be null or empty
+        if args=='' or args=='NULL':
+            print('The [leg] field of upsertLeg command cannot be empty or NULL.')
+            return
+
         conn = None
         leg = args
-        
         #leg should be an integer larger than 0
         try:
             a = int(leg)
@@ -217,19 +219,6 @@ class SwimMeetDBApp(cmd.Cmd):
 
         #connect and upsert
         self.upsert('Leg', l)
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertLeg', (leg,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
                 
 
     def help_upsertLeg(self):
@@ -248,23 +237,14 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=1:
             print("*** invalid number of arguments.")
             return
+        #stroke input should not be null or empty
+        if args=='' or args=='NULL':
+            print('The [stroke] field of upsertStroke command cannot be empty or NULL.')
+            return
         conn = None
         stroke = args
         #connect and upsert
         self.upsert('Stroke', l)
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertStroke', (stroke,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
                 
 
     def help_upsertStroke(self):
@@ -283,11 +263,14 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=1:
             print("*** invalid number of arguments.")
             return
+        
+        #distance input should not be null or empty
+        if args=='' or args=='NULL':
+            print('The [distance] field of upsertDistance command cannot be empty or NULL.')
+            return
+
         conn = None
         distance = args
-        #connect and upsert
-        self.upsert('Distance', l)
-        '''
         #distance should be an integer larger than 0
         try:
             a = int(distance)
@@ -297,19 +280,9 @@ class SwimMeetDBApp(cmd.Cmd):
         except ValueError:
             print("Incorrect data format, [distance] should be an integer")
             return
-        
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertDistance', (distance,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
+
+        #connect and upsert
+        self.upsert('Distance', l)
                 
 
     def help_upsertDistance(self):
@@ -329,16 +302,18 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=3:
             print("*** invalid number of arguments.")
             return
+        #all 3 fields should not be null or empty
+        if '' in l or 'NULL' in l:
+            print('No fields of upsertEvent command can be empty or NULL.')
+            return
         conn = None
         id = l[0]
         gender = l[1]
-        #check for valid date input
         #gender should not be null
         if gender not in ['M', 'F']:
-            print("[gender] should be either 'M' or 'F'. ")
+            print("[gender] should be either 'M' or 'F'.")
             return 
-
-        #distance should not be null      
+     
         distance = l[2]
         #distance should be an integer larger than 0
         try:
@@ -350,24 +325,9 @@ class SwimMeetDBApp(cmd.Cmd):
             print("Incorrect data format, [distance] should be an integer")
             return
 
-
         #connect and upsert
-        self.upsert('Event', l)
+        self.upsert('Event', l)      
 
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertEvent', (id, gender, distance,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
-                
 
     def help_upsertEvent(self):
         print ('\n'.join([ '',
@@ -390,6 +350,10 @@ class SwimMeetDBApp(cmd.Cmd):
         if len(l)!=3:
             print("*** invalid number of arguments.")
             return
+        #all 3 fields should not be null or empty
+        if '' in l or 'NULL' in l:
+            print('No fields of upsertStrokeOf command can be empty or NULL.')
+            return
         conn = None
         event_id = l[0]
         leg = l[1]
@@ -409,20 +373,6 @@ class SwimMeetDBApp(cmd.Cmd):
         #connect and upsert
         self.upsert('StrokeOf', l)
 
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertStrokeOf', (event_id, leg, stroke,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
-                
 
     def help_upsertStrokeOf(self):
         print ('\n'.join([ '',
@@ -445,7 +395,10 @@ class SwimMeetDBApp(cmd.Cmd):
             print("*** invalid number of arguments.")
             return
         conn = None
-        #all 3 fields should not be bull
+        #all 3 fields should not be null or empty
+        if '' in l or 'NULL' in l:
+            print('No fields of upsertHeat command can be empty or NULL.')
+            return
         id = l[0]
         event_id = l[1] 
         meet_name = l[2]
@@ -453,19 +406,6 @@ class SwimMeetDBApp(cmd.Cmd):
         #connect and upsert
         self.upsert('Heat', l)
 
-        '''
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertHeat', (id, event_id, meet_name,))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()'''
                 
 
     def help_upsertHeat(self):
@@ -481,22 +421,26 @@ class SwimMeetDBApp(cmd.Cmd):
 
 
 
-
-    #Update or insert a participant info
+    '''
+    Update or insert a participant info
+    '''
     def do_upsertSwim(self, args):
         l = shlex.split(args)
         if len(l)!=6:
             print("*** invalid number of arguments.")
             return
         conn = None
-        #all 4 PK fields should not be bull
+        #First 5 fields should not be null or empty
+        if '' in l[:5] or 'NULL' in l[:5]:
+            print('First 5 fields of upsertSwim command cannot be empty or NULL.')
+            return
+
         heat_id = l[0]
         event_id = l[1] 
         meet_name = l[2]
         participant_id = l[3]
-
         leg = l[4]
-        #leg should be an integer larger than 0
+        #[leg] should be an integer larger than 0
         try:
             a = int(leg)
             if a <= 0:
@@ -506,32 +450,20 @@ class SwimMeetDBApp(cmd.Cmd):
             print("Incorrect data format, [leg] should be an integer")
             return
 
-        t = l[5]
-        #if time is not null
-        #time should be a number larger than 0
-        try:
-            t = float(t)    #convert to float number
-            if t <= 0:
-                print("[time] should be a number larger than 0")
+        #if [time] is not empty or NULL, time should be a number larger than 0
+        if l[5] != '' and l[5] != 'NULL':
+            try:
+                t = float(l[5])    #convert to float number
+                if t <= 0:
+                    print("[time] should be a number larger than 0")
+                    return
+            except ValueError:
+                print("Incorrect data format, [time] should be a number")
                 return
-        except ValueError:
-            print("Incorrect data format, [time] should be a number")
-            return
-
-
-        try:
-            conn = psycopg2.connect(self.params)
-            cur = conn.cursor()
-            cur.callproc('upsertSwim', (heat_id, event_id, meet_name, participant_id, leg, t))
-            conn.commit()
-            # close the communication with the PostgreSQL database server
-            cur.close()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            if conn is not None:
-                conn.close()
-                
+            l[5] = float(l[5])
+        else:   #if [time] is empty or NULL, set it to None
+            l[5] = None
+        self.upsert('Swim', l)              
 
     def help_upsertSwim(self):
         print ('\n'.join([ '',
@@ -556,7 +488,9 @@ class SwimMeetDBApp(cmd.Cmd):
     #########################################
     #########################################
 
-    #get info of an organization or university
+    '''
+    get info of an organization or university
+    '''
     def do_getOrg(self, org_id):
         conn = None
         try:
@@ -582,8 +516,9 @@ class SwimMeetDBApp(cmd.Cmd):
                            ]) )
 
 
-
-    #read csv
+    '''
+    read csv, assuming the data file is valid. No error checking
+    '''
     def do_readCSV(self, args):
         l = shlex.split(args)
         if len(l)!=1:
@@ -594,21 +529,26 @@ class SwimMeetDBApp(cmd.Cmd):
             with open(path, newline='') as csvfile:
                 spamreader = csv.reader(csvfile, delimiter=',')
                 curTable = None
+                count=0
                 for row in spamreader:
                     if(row[0].startswith("*")):
+                        print("count: %d", count)
+                        count=0
                         print(row[0].strip(',*'))
                         curTable = row[0].strip(',*')
+                        
                     else:
                         #length = 4
                         #newrow = row[:length]
                         #print(newrow)
                         #print(parameters)
+                        count+=1
                         self.upsert(curTable, row)
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             print("Please check your input path.")
 
-
+# readCSV hw6.csv
     def help_readCSV(self):
         print ('\n'.join([ '',
                            'readCSV [path]',
@@ -623,8 +563,17 @@ class SwimMeetDBApp(cmd.Cmd):
         conn = None
         function_name = 'upsert' + table
         length = self.lendict[table]
-        if table != 'Swim':
-            return
+        # if table != 'Swim':
+        #     return
+
+        #convert empty string or 'NULL' to None
+        for i in range(length):
+            if row[i]=='' or row[i]=='NULL':
+                row[i] = None
+
+        #type cast for float value in 'Swim'
+        if table == 'Swim' and row[5] != None:
+            row[5] = float(row[5])
         print(row[:length])
         try:
             conn = psycopg2.connect(self.params)
@@ -664,6 +613,8 @@ class SwimMeetDBApp(cmd.Cmd):
 
     #meet event 
     
+
+
     
     def do_greet(self, person):
         if person:
@@ -674,6 +625,14 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_greet(self):
         print ('\n'.join([ 'greet [person]',
                            'Greet the named person',
+                           ]) )
+
+    def help_app(self):
+        print ('\n'.join([ 'NULL or "" will be treated as NULL in table',
+                           'Use "" to input an empty field',
+                           'i.e. upsertXXX xxx "" ',
+                           'Use NULL to input NULL',
+                           'i.e. upsertXXX xxx NULL',
                            ]) )
     
     def do_EOF(self, line):

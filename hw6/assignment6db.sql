@@ -29,14 +29,14 @@ CREATE TABLE Org (
 
 CREATE TABLE Meet (
     name VARCHAR(20),
-    start_date DATE,
-    num_days INT,   --can be unknown
-    org_id VARCHAR(10),
+    start_date DATE,        --can be unknown
+    num_days INT,           --can be unknown
+    org_id VARCHAR(10),     --can be unknown  
     PRIMARY KEY (name),
     FOREIGN KEY (org_id) REFERENCES Org (id),
     --when num_days is not null, it should be a number larger then 0
     CONSTRAINT chk_num_days
-    CHECK ((num_days > 0) and num_days is not NULL)
+    CHECK (num_days > 0)
 );
 
 
@@ -103,21 +103,97 @@ CREATE TABLE Swim (
     meet_name VARCHAR(20),
     participant_id VARCHAR(10),
     leg INT NOT NULL,
-    --a swimmer may start the swimming but fail to finish it for some reasons
-    --so it can be null if that happens
     --app side should add '.0' for integer input time
-    t NUMERIC(8,5),
+    t DECIMAL,
     PRIMARY KEY (heat_id, event_id, meet_name, participant_id),
     FOREIGN KEY (heat_id, event_id, meet_name) REFERENCES Heat (id, event_id ,meet_name),
     FOREIGN KEY (participant_id) REFERENCES Participant (id),
     FOREIGN KEY (leg) REFERENCES Leg (leg),
-    CONSTRAINT chk_time
-    CHECK ((t > 0) and t is not NULL)
+    CONSTRAINT chk_time CHECK (t > 0),
+    CONSTRAINT chk_gender 
+    CHECK (checkSwimGender(event_id, participant_id)),
+    --for a relay race event, one school can have only one group in a heat
+    --(heat_id, event_id, meet_name, org_id of participant, leg) must be unique
+    CONSTRAINT chk_relay_school 
+    CHECK (checkRelaySchool(heat_id, event_id, meet_name, participant_id, leg))
 );
 
 
 
 
+
+
+
+--------------------------------------
+--------------------------------------
+----------Check functions-------------
+--------------------------------------
+--------------------------------------
+DROP FUNCTION IF EXISTS checkRelaySchool(
+    heat_id_value VARCHAR(10),
+    event_id_value VARCHAR(10),
+    meet_name_value VARCHAR(20),
+    participant_id_value VARCHAR(10),
+    leg_value INT) CASCADE;
+CREATE OR REPLACE FUNCTION checkRelaySchool(
+    heat_id_value VARCHAR(10),
+    event_id_value VARCHAR(10),
+    meet_name_value VARCHAR(20),
+    participant_id_value VARCHAR(10),
+    leg_value INT)
+RETURNS BOOLEAN
+AS $$
+    DECLARE 
+        event_leg_count INT;
+        count_schools INT;  --count of schools for each leg in a relay heat
+    BEGIN
+        SELECT COUNT(*) into event_leg_count 
+        From StrokeOf 
+        WHERE event_id=event_id_value;
+        IF event_leg_count > 1 THEN
+            SELECT Count(*) into count_schools
+            FROM Swim
+            INNER JOIN Participant 
+            ON Participant.id = Swim.participant_id
+            GROUP BY heat_id, event_id, meet_name, 
+            Participant.org_id, leg;
+            IF count_schools >= 1 THEN
+                RETURN FALSE;
+            END IF;
+        END IF;
+        RETURN TRUE;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+DROP FUNCTION IF EXISTS checkSwimGender(
+    event_id_value VARCHAR(10),
+    participant_id_value VARCHAR(10)) CASCADE;
+CREATE OR REPLACE FUNCTION checkSwimGender (
+    event_id_value VARCHAR(10),
+    participant_id_value VARCHAR(10))
+RETURNS BOOLEAN
+AS $$
+    DECLARE 
+        event_gender VARCHAR(1);
+        participant_gender VARCHAR(1);
+    BEGIN
+        SELECT gender into event_gender 
+        From Event 
+        WHERE id=event_id_value;
+        SELECT gender into participant_gender 
+        From Participant 
+        WHERE id=participant_id_value;
+        IF event_gender!=participant_gender THEN
+            RETURN FALSE;
+        ELSE
+            RETURN TRUE;       
+        END IF;
+    END $$
+LANGUAGE plpgsql
+STABLE;
 
 
 
@@ -232,7 +308,7 @@ DROP FUNCTION IF EXISTS GetSwim (heat_id_value VARCHAR(10),
 CREATE OR REPLACE FUNCTION GetSwim (heat_id_value VARCHAR(10), 
                                     event_id_value VARCHAR(10), meet_name_value VARCHAR(20),
                                     participant_id_value VARCHAR(10))
-RETURNS TABLE (heat_id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20), participant_id VARCHAR(10), leg INT, t NUMERIC(8,5))
+RETURNS TABLE (heat_id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20), participant_id VARCHAR(10), leg INT, t DECIMAL)
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Swim WHERE Swim.heat_id = heat_id_value 
@@ -492,14 +568,14 @@ DROP FUNCTION IF EXISTS upsertSwim (
     meet_name_value VARCHAR(20),
     participant_id_value VARCHAR(10),
     leg_value INT,
-    t_value NUMERIC(8,5));
+    t_value DECIMAL);
 CREATE OR REPLACE FUNCTION  upsertSwim (
     heat_id_value VARCHAR(10), 
     event_id_value VARCHAR(10), 
     meet_name_value VARCHAR(20),
     participant_id_value VARCHAR(10),
     leg_value INT,
-    t_value NUMERIC(8,5))
+    t_value DECIMAL)
 RETURNS VOID
 AS $$
     DECLARE 
