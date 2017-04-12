@@ -721,6 +721,8 @@ LANGUAGE plpgsql;
 --------------------------------------
 --------------------------------------
 
+--useful view to facilitate heat sheet functions
+
 --individual event ids
 DROP VIEW IF EXISTS individual_events;
 CREATE VIEW individual_events AS
@@ -843,6 +845,31 @@ ORDER BY sw.meet_name, sw.event_id, sw.heat_id,
 
 
 
+
+--heat sheet functions
+DROP FUNCTION IF EXISTS GetMeetInfoInd(meet_name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeetInfoInd (meet_name_value VARCHAR(20))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ org_id VARCHAR(10), 
+ school VARCHAR(20),
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20), 
+ event_rank bigint ,
+ t DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.org_id, m.school,
+        m.participant_id, m.swimmer_name, 
+        m.event_rank, m.t
+        FROM meet_individual_info m WHERE m.meet_name = meet_name_value);
+    END $$
+LANGUAGE plpgsql
+STABLE;
 
 
 
