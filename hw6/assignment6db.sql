@@ -144,7 +144,7 @@ CREATE OR REPLACE FUNCTION checkRelaySchool(
 RETURNS BOOLEAN
 AS $$
     DECLARE 
-        event_leg_count INT;
+        event_leg_count INT;    --count of legs in this event
         count_schools INT;  --count of schools for each leg in a relay heat
     BEGIN
         SELECT COUNT(*) into event_leg_count 
@@ -714,11 +714,131 @@ LANGUAGE plpgsql;
 
 
 
+--------------------------------------
+--------------------------------------
+-------------Heat Sheet --------------
+----------functions and views---------
+--------------------------------------
+--------------------------------------
+
+--individual event ids
+DROP VIEW IF EXISTS individual_events;
+CREATE VIEW individual_events AS
+SELECT event_id
+        From StrokeOf 
+        GROUP BY event_id
+        HAVING Count(*) = 1;
+
+--relay event ids
+DROP VIEW IF EXISTS relay_events;
+CREATE VIEW relay_events AS
+SELECT event_id
+        From StrokeOf 
+        GROUP BY event_id
+        HAVING Count(*) > 1;
 
 
---queries
+
+--heat sheet of individual events
+DROP VIEW IF EXISTS meet_individual_info;
+CREATE VIEW meet_individual_info AS
+SELECT sw.meet_name, 
+    sw.event_id,  e.gender, e.distance, s.stroke, 
+    sw.heat_id, 
+    Org.id AS org_id, Org.name AS school, 
+    sw.participant_id, p.name AS swimmer_name, 
+    t, 
+    RANK() OVER   
+    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id ORDER BY sw.t ASC) 
+    AS personal_rank,
+    --only choose the best time of a participant in an event
+    CASE WHEN ( RANK() OVER   
+    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id ORDER BY sw.t ASC))=1
+    THEN RANK() OVER   
+    (PARTITION BY sw.meet_name, sw.event_id ORDER BY sw.t ASC) 
+    END AS event_rank 
+FROM Swim sw
+INNER JOIN individual_events ind 
+    ON ind.event_id = sw.event_id
+INNER JOIN Event e 
+    ON sw.event_id = e.id
+INNER JOIN StrokeOf s 
+    ON s.event_id = e.id AND s.leg=sw.leg
+INNER JOIN Participant p 
+    ON p.id = sw.participant_id
+INNER JOIN Org 
+    ON p.org_id = Org.id
+ORDER BY sw.meet_name, sw.event_id, 
+    sw.heat_id,
+    event_rank,
+    school ASC
+;
 
 
+
+--time and rank of relay events
+DROP VIEW IF EXISTS meet_group_time_rank CASCADE;
+CREATE VIEW meet_group_time_rank AS
+SELECT sw.meet_name, 
+    sw.event_id, e.gender, e.distance, s.stroke,
+    sw.heat_id, 
+    --only choose the best time of the group in an event
+    CASE WHEN  
+        (RANK() OVER   
+        (PARTITION BY sw.meet_name, sw.event_id, Org.id 
+         ORDER BY Sum(t) ASC) )=1
+    THEN 
+        RANK() OVER   
+        (PARTITION BY sw.meet_name, sw.event_id ORDER BY Sum(t) ASC) 
+    END AS group_event_rank,
+    Sum(t) AS group_time,
+    Org.id AS org_id, Org.name AS school,
+    RANK() OVER   
+    (PARTITION BY sw.meet_name, sw.event_id, Org.id 
+        ORDER BY Sum(t) ASC) 
+        AS school_rank
+    
+FROM Swim sw
+INNER JOIN relay_events r ON r.event_id = sw.event_id
+INNER JOIN Event e ON sw.event_id = e.id
+INNER JOIN StrokeOf s ON s.event_id = e.id AND s.leg=sw.leg
+INNER JOIN Participant p ON p.id = sw.participant_id
+INNER JOIN Org ON p.org_id = Org.id
+GROUP BY sw.meet_name, 
+    sw.event_id, e.gender, e.distance, s.stroke, 
+    sw.heat_id, 
+    Org.id, Org.name
+ORDER BY sw.meet_name, sw.event_id, group_event_rank ASC
+;
+
+
+--heat sheet of relay events
+DROP VIEW IF EXISTS meet_group_info;
+CREATE VIEW meet_group_info AS
+SELECT sw.meet_name, 
+    sw.event_id,  e.gender, e.distance, s.stroke, 
+    sw.heat_id, 
+    m.group_event_rank,
+    m.group_time,
+    Org.id AS org_id, Org.name AS school, 
+    sw.leg,
+    sw.participant_id, p.name AS swimmer_name, 
+    t AS individual_time
+FROM Swim sw
+INNER JOIN relay_events r ON r.event_id = sw.event_id
+INNER JOIN Event e ON sw.event_id = e.id
+INNER JOIN StrokeOf s ON s.event_id = e.id AND s.leg=sw.leg
+INNER JOIN Participant p ON p.id = sw.participant_id
+INNER JOIN Org ON p.org_id = Org.id
+INNER JOIN meet_group_time_rank m 
+ON sw.meet_name=m.meet_name 
+    AND sw.event_id=m.event_id
+    AND sw.heat_id=m.heat_id
+    AND Org.id=m.org_id
+
+ORDER BY sw.meet_name, sw.event_id, sw.heat_id, 
+    group_event_rank, leg ASC
+;
 
 
 
