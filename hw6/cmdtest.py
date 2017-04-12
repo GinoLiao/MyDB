@@ -4,6 +4,9 @@ import shlex
 import datetime
 import csv
 import sys
+#prettytable is used to print heat sheet
+#Please check README to install it
+from prettytable import PrettyTable
 
 class SwimMeetDBApp(cmd.Cmd):
     """Swim Meeting Database application."""
@@ -709,8 +712,130 @@ class SwimMeetDBApp(cmd.Cmd):
         return res
 
 
-    #display heat sheet 
+
+    #########################################
+    #########################################
+    ###########Heat Sheet Functions##########
+    #########################################
+    #########################################
+    '''
+    heat sheet commands
+    '''
+    def do_heatsheet(self, args):
+        l = shlex.split(args)
+        if len(l)<1:
+            print("Please enter [type] of heat sheet you want.")
+            return
+        #no empty string or null are allowed
+        if '' in l or 'NULL' in l:
+            print('No empty string or null are allowed in parameter fields.')
+            return
+        htype = l[0]
+        if htype=='info':
+            if not self.check_arg_len(l, 2):
+                return
+            self.meet_info(l[1:])
+        elif htype=='swimmer':
+            if not self.check_arg_len(l, 3):
+                return
+            self.swimmer_info(l[1:])
+        elif htype=='school_info':
+            if not self.check_arg_len(l, 3):
+                return
+            self.school_info(l[1:])
+        elif htype=='school_swimmer':
+            if not self.check_arg_len(l, 3):
+                return
+            self.school_swimmer(l[1:])
+        elif htype=='event':
+            if not self.check_arg_len(l, 3):
+                return
+            self.event_info(l[1:])
+        elif htype=='score':
+            if not self.check_arg_len(l, 2):
+                return
+            self.meet_info(l[1:])
+        else:
+            print('Please enter valid [type] of heat sheet you want.')
+
+
+    def help_heatsheet(self):
+        print ('\n'.join([ '',
+                           'heatsheet [htype] [meet_name] [None/org_id/event_id/participant_id]',
+                           'Get a type of heat sheet of a Swim Meeting.',
+                           'No empty string or null are allowed in parameter fields.',
+                           '1. To get a whole heat sheet of a meet:',
+                           '   heatsheet info [meet_name]',
+                           '2. To get a heat sheet of a swimmer in a meet:',
+                           '   heatsheet swimmer [meet_name] [participant_id]',
+                           '3. To get a heat sheet of a school\'s swimmers in a meet:',
+                           '   heatsheet school_info [meet_name] [org_id of school]',
+                           '4. To get competing swimmers of a school in a meet:',
+                           '   heatsheet school_swimmer [meet_name] [org_id of school]',
+                           '5. To get a heat sheet of an event in a meet:',
+                           '   heatsheet event [meet_name] [event_id]',
+                           '6. To get scores of school in a meet:',
+                           '   heatsheet score [meet_name]',
+                           ]) )
+
+    #check if the length of input args is valid
+    def check_arg_len(self, args, length):
+        if len(args) != length:
+            print("***Invalid number of arguments.")
+            return False
+        return True
+
+
+    def get_event_name(self, gender, distance, stroke, relay):
+        res = ""
+        if gender=="M":
+            res += "Men's "
+        else:
+            res += "Women's "
+        d = str(distance)
+        res += d + " meters " + stroke + " " + relay
+        return res
+
+
     #meet info
+    def meet_info(self, l):
+        meet_name = l[0]
+        print('Heat sheet of individual events in meet ', meet_name)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'org_id', 'school_name',
+                        'participant_id', 'swimmer_name',
+                        'evet_rank', 'time'))
+        rows = self.callDBFunc('GetMeetInfoInd', l)
+        for row in rows:
+            newlist = []
+            newlist.append(self.get_event_name(row[0], row[1], row[2], ''))
+            newlist[1:] = row[3:]
+            newlist[-1] = float(newlist[-1])
+            #print(newlist)
+            t.add_row(newlist)
+        print(t)
+
+        '''
+        print('\nHeat sheet of relay events in meet ', 
+            meet_name, 
+            ' (with individual time)')
+        t = PrettyTable(('Name', 'Age'))
+        rows = self.callDBFunc('GetMeetInfoGroup', l)
+        for row in rows:
+            t.add_row(row)
+        print(t)
+
+        
+        print('\nHeat sheet of relay events in meet ', 
+            meet_name, 
+            ' (group info only)')
+        t = PrettyTable(('Name', 'Age'))
+        rows = self.callDBFunc('GetMeetInfoGroup', l)
+        for row in rows:
+            t.add_row(row)
+        print(t)
+        '''
+
 
     #meet scores
 

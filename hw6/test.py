@@ -65,9 +65,9 @@ with open('save.csv', 'w', newline='') as csvfile:
     spamwriter.writerow(['*Org'])
 '''
 
+
+'''
 import psycopg2
-
-
 conn = psycopg2.connect("host=localhost dbname=postgres user=ricedb password=zl15ricedb")
 
 cur = conn.cursor()
@@ -77,6 +77,11 @@ rows = cur.fetchall()
 for row in rows:
     print(row)
 
-
 cur.close()
 conn.close()
+'''
+from prettytable import PrettyTable
+t = PrettyTable(('Name', 'Age'))
+t.add_row(('Alice', 24))
+t.add_row(('Bob', 19))
+print(t)
