@@ -106,8 +106,10 @@ CREATE TABLE Swim (
     --app side should add '.0' for integer input time
     t DECIMAL,
     PRIMARY KEY (heat_id, event_id, meet_name, participant_id),
-    FOREIGN KEY (heat_id, event_id, meet_name) REFERENCES Heat (id, event_id ,meet_name),
-    FOREIGN KEY (participant_id) REFERENCES Participant (id),
+    FOREIGN KEY (heat_id, event_id, meet_name) 
+        REFERENCES Heat (id, event_id ,meet_name),
+    FOREIGN KEY (participant_id) 
+        REFERENCES Participant (id),
     FOREIGN KEY (leg) REFERENCES Leg (leg),
     CONSTRAINT chk_time CHECK (t > 0),
     CONSTRAINT chk_gender 
@@ -206,31 +208,42 @@ STABLE;
 
 --read operations by primary keys
 DROP FUNCTION IF EXISTS GetOrg(VARCHAR(10));
-CREATE OR REPLACE FUNCTION GetOrg (id_value VARCHAR(10))
-RETURNS TABLE (id VARCHAR(10), name VARCHAR(20), is_univ BOOLEAN)
+CREATE OR REPLACE FUNCTION GetOrg (
+    id_value VARCHAR(10))
+RETURNS TABLE (id VARCHAR(10), 
+    name VARCHAR(20), is_univ BOOLEAN)
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Org WHERE Org.id = id_value;
+        RETURN QUERY SELECT * FROM Org 
+        WHERE Org.id = id_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
 
-DROP FUNCTION IF EXISTS GetMeet (name_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION GetMeet (name_value VARCHAR(20))
-RETURNS TABLE (name VARCHAR(20), start_date DATE, num_days INT, org_id VARCHAR(10))
+DROP FUNCTION IF EXISTS GetMeet (
+    name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeet (
+    name_value VARCHAR(20))
+RETURNS TABLE (name VARCHAR(20), start_date DATE, 
+    num_days INT, org_id VARCHAR(10))
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Meet WHERE Meet.name = name_value;
+        RETURN QUERY SELECT * FROM Meet 
+        WHERE Meet.name = name_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
 
-DROP FUNCTION IF EXISTS GetParticipant (id_value VARCHAR(10));
-CREATE OR REPLACE FUNCTION GetParticipant (id_value VARCHAR(10))
-RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), org_id VARCHAR(10), name VARCHAR(20))
+DROP FUNCTION IF EXISTS GetParticipant (
+    id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetParticipant (
+    id_value VARCHAR(10))
+RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), 
+    org_id VARCHAR(10), name VARCHAR(20))
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Participant WHERE Participant.id = id_value;
+        RETURN QUERY SELECT * FROM Participant 
+        WHERE Participant.id = id_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -240,7 +253,8 @@ CREATE OR REPLACE FUNCTION GetLeg (leg_value INT)
 RETURNS TABLE (leg INT)
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Leg WHERE Leg.leg = leg_value;
+        RETURN QUERY SELECT * FROM Leg 
+        WHERE Leg.leg = leg_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -250,7 +264,8 @@ CREATE OR REPLACE FUNCTION GetStroke (stroke_value VARCHAR(20))
 RETURNS TABLE (stroke VARCHAR(20))
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Stroke WHERE Stroke.stroke = stroke_value;
+        RETURN QUERY SELECT * FROM Stroke 
+        WHERE Stroke.stroke = stroke_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -260,7 +275,8 @@ CREATE OR REPLACE FUNCTION GetDistance (distance_value INT)
 RETURNS TABLE (distance INT)
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Distance WHERE Distance.distance = distance_value;
+        RETURN QUERY SELECT * FROM Distance 
+        WHERE Distance.distance = distance_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -270,27 +286,31 @@ CREATE OR REPLACE FUNCTION GetEvent (id_value VARCHAR(10))
 RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), distance INT)
 AS $$
     BEGIN
-        RETURN QUERY SELECT * FROM Event WHERE Event.id = id_value;
+        RETURN QUERY SELECT * FROM Event 
+        WHERE Event.id = id_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
 
-DROP FUNCTION IF EXISTS GetStrokeOf (event_id_value VARCHAR(10), leg_value INT);
-CREATE OR REPLACE FUNCTION GetStrokeOf (event_id_value VARCHAR(10), leg_value INT)
+DROP FUNCTION IF EXISTS GetStrokeOf (
+    event_id_value VARCHAR(10), leg_value INT);
+CREATE OR REPLACE FUNCTION GetStrokeOf (
+    event_id_value VARCHAR(10), leg_value INT)
 RETURNS TABLE (event_id VARCHAR(10), leg INT, stroke VARCHAR(20))
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM StrokeOf 
-        WHERE StrokeOf.event_id = event_id_value AND StrokeOf.leg = leg_value;
+        WHERE StrokeOf.event_id = event_id_value 
+        AND StrokeOf.leg = leg_value;
     END $$
 LANGUAGE plpgsql
 STABLE;
 
 
 DROP FUNCTION IF EXISTS GetHeat (id_value VARCHAR(10), 
-                                    event_id_value VARCHAR(10), meet_name_value VARCHAR(20));
+    event_id_value VARCHAR(10), meet_name_value VARCHAR(20));
 CREATE OR REPLACE FUNCTION GetHeat (id_value VARCHAR(10), 
-                                    event_id_value VARCHAR(10), meet_name_value VARCHAR(20))
+    event_id_value VARCHAR(10), meet_name_value VARCHAR(20))
 RETURNS TABLE (id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20))
 AS $$
     BEGIN
@@ -302,12 +322,12 @@ STABLE;
 
 
 DROP FUNCTION IF EXISTS GetSwim (heat_id_value VARCHAR(10), 
-                                    event_id_value VARCHAR(10), meet_name_value VARCHAR(20),
-                                    participant_id_value VARCHAR(10));
+    event_id_value VARCHAR(10), meet_name_value VARCHAR(20),
+    participant_id_value VARCHAR(10));
 
 CREATE OR REPLACE FUNCTION GetSwim (heat_id_value VARCHAR(10), 
-                                    event_id_value VARCHAR(10), meet_name_value VARCHAR(20),
-                                    participant_id_value VARCHAR(10))
+    event_id_value VARCHAR(10), meet_name_value VARCHAR(20),
+    participant_id_value VARCHAR(10))
 RETURNS TABLE (heat_id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20), participant_id VARCHAR(10), leg INT, t DECIMAL)
 AS $$
     BEGIN
@@ -337,7 +357,8 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetAllMeet ();
 CREATE OR REPLACE FUNCTION GetAllMeet ()
-RETURNS TABLE (name VARCHAR(20), start_date DATE, num_days INT, org_id VARCHAR(10))
+RETURNS TABLE (name VARCHAR(20), start_date DATE, 
+    num_days INT, org_id VARCHAR(10))
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Meet;
@@ -347,7 +368,8 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetAllParticipant ();
 CREATE OR REPLACE FUNCTION GetAllParticipant ()
-RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), org_id VARCHAR(10), name VARCHAR(20))
+RETURNS TABLE (id VARCHAR(10), gender VARCHAR(1), 
+    org_id VARCHAR(10), name VARCHAR(20))
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Participant;
@@ -408,7 +430,8 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetAllHeat ();
 CREATE OR REPLACE FUNCTION GetAllHeat ()
-RETURNS TABLE (id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20))
+RETURNS TABLE (id VARCHAR(10), event_id VARCHAR(10), 
+    meet_name VARCHAR(20))
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Heat;
@@ -419,7 +442,10 @@ STABLE;
 
 DROP FUNCTION IF EXISTS GetAllSwim ();
 CREATE OR REPLACE FUNCTION GetAllSwim ()
-RETURNS TABLE (heat_id VARCHAR(10), event_id VARCHAR(10), meet_name VARCHAR(20), participant_id VARCHAR(10), leg INT, t DECIMAL)
+RETURNS TABLE (
+    heat_id VARCHAR(10), event_id VARCHAR(10), 
+    meet_name VARCHAR(20), participant_id VARCHAR(10), 
+    leg INT, t DECIMAL)
 AS $$
     BEGIN
         RETURN QUERY SELECT * FROM Swim;
@@ -751,11 +777,13 @@ SELECT sw.meet_name,
     sw.participant_id, p.name AS swimmer_name, 
     t, 
     RANK() OVER   
-    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id ORDER BY sw.t ASC) 
+    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id 
+        ORDER BY sw.t ASC) 
     AS personal_rank,
     --only choose the best time of a participant in an event
     CASE WHEN ( RANK() OVER   
-    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id ORDER BY sw.t ASC))=1
+    (PARTITION BY sw.meet_name, sw.event_id, sw.participant_id 
+        ORDER BY sw.t ASC))=1
     THEN RANK() OVER   
     (PARTITION BY sw.meet_name, sw.event_id ORDER BY sw.t ASC) 
     END AS event_rank 
@@ -845,10 +873,14 @@ ORDER BY sw.meet_name, sw.event_id, sw.heat_id,
 
 
 
-
 --heat sheet functions
-DROP FUNCTION IF EXISTS GetMeetInfoInd(meet_name_value VARCHAR(20));
-CREATE OR REPLACE FUNCTION GetMeetInfoInd (meet_name_value VARCHAR(20))
+
+--1. For a Meet, display a Heat Sheet.
+--get heat sheet of individual events in a meet
+DROP FUNCTION IF EXISTS GetMeetInfoInd(
+    meet_name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeetInfoInd (
+    meet_name_value VARCHAR(20))
 RETURNS TABLE 
 (gender VARCHAR(1), distance INT, stroke VARCHAR(20),
  heat_id VARCHAR(10),
@@ -866,7 +898,69 @@ AS $$
         m.org_id, m.school,
         m.participant_id, m.swimmer_name, 
         m.event_rank, m.t
-        FROM meet_individual_info m WHERE m.meet_name = meet_name_value);
+        FROM meet_individual_info m 
+        WHERE m.meet_name = meet_name_value);
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--get heat sheet of group events with individual times (of a meet)
+DROP FUNCTION IF EXISTS GetMeetInfoGroup(
+    meet_name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeetInfoGroup (
+    meet_name_value VARCHAR(20))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ group_event_rank bigint ,
+ group_time DECIMAL,
+ org_id VARCHAR(10), 
+ school VARCHAR(20),
+ leg INT,
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20), 
+ individual_time DECIMAL
+ )
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.group_event_rank,
+        m.group_time,
+        m.org_id, m.school,
+        m.leg,
+        m.participant_id, m.swimmer_name, 
+        m.individual_time
+        FROM meet_group_info m WHERE m.meet_name = meet_name_value);
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--get heat sheet of relay events inf a meet
+DROP FUNCTION IF EXISTS GetMeetInfoGroupOnly(
+    meet_name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeetInfoGroupOnly (
+    meet_name_value VARCHAR(20))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ group_event_rank bigint ,
+ group_time DECIMAL,
+ org_id VARCHAR(10), 
+ school VARCHAR(20)
+ )
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.group_event_rank,
+        m.group_time,
+        m.org_id, m.school
+        FROM meet_group_time_rank m WHERE m.meet_name = meet_name_value);
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -874,5 +968,319 @@ STABLE;
 
 
 
+
+
+
+--2.
+--For a Participant and Meet, display a Heat Sheet 
+--limited to just that swimmer,
+--including any relays they are in.
+
+--get heat sheet of a partcipant in individual events of a meet
+DROP FUNCTION IF EXISTS GetParticipantInfoInd(
+    meet_name_value VARCHAR(20), 
+    participant_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetParticipantInfoInd (
+    meet_name_value VARCHAR(20), 
+    participant_id_value VARCHAR(10))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ org_id VARCHAR(10), 
+ school VARCHAR(20),
+ event_rank bigint,
+ t DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.org_id, m.school,
+        m.event_rank, m.t
+        FROM meet_individual_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.participant_id=participant_id_value
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--get heat sheet of a partcipant in group events of a meet
+DROP FUNCTION IF EXISTS GetParticipantInfoGroup(
+    meet_name_value VARCHAR(20), 
+    participant_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetParticipantInfoGroup (
+    meet_name_value VARCHAR(20), 
+    participant_id_value VARCHAR(10))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ group_event_rank bigint ,
+ group_time DECIMAL,
+ org_id VARCHAR(10), 
+ school VARCHAR(20),
+ leg INT,
+ individual_time DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.group_event_rank,
+        m.group_time,
+        m.org_id, m.school,
+        m.leg,
+        m.individual_time
+        FROM meet_group_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.participant_id=participant_id_value
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+
+
+--3.
+--For a School and Meet, display a Heat Sheet 
+--limited to just that School’s swimmers
+
+-- get heat sheet of all partcipants of the school
+-- in individual events of a meet
+DROP FUNCTION IF EXISTS GetSchoolInfoInd(
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetSchoolInfoInd (
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20), 
+ event_rank bigint,
+ t DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.participant_id, m.swimmer_name, 
+        m.event_rank, m.t
+        FROM meet_individual_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.org_id=org_id_value
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+-- get heat sheet of all partcipants of the school
+-- in relay events of a meet
+DROP FUNCTION IF EXISTS GetSchoolInfoGroup(
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetSchoolInfoGroup (
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10))
+RETURNS TABLE 
+(gender VARCHAR(1), distance INT, stroke VARCHAR(20),
+ heat_id VARCHAR(10),
+ group_event_rank bigint ,
+ group_time DECIMAL,
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20), 
+ leg INT,
+ individual_time DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.gender, m.distance, m.stroke,
+        m.heat_id, 
+        m.group_event_rank,
+        m.group_time,
+        m.participant_id, m.swimmer_name, 
+        m.leg,
+        m.individual_time
+        FROM meet_group_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.org_id=org_id_value
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+
+
+
+--4.
+--For a School and Meet, display 
+--just the names of the competing swimmers.
+DROP FUNCTION IF EXISTS GetSchoolSwimmers(
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetSchoolSwimmers (
+    meet_name_value VARCHAR(20), 
+    org_id_value VARCHAR(10))
+RETURNS TABLE 
+(participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20)
+)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT DISTINCT p.id, p.name
+        FROM Swim s 
+        INNER JOIN Participant p
+        On p.org_id = org_id_value
+        AND p.id=s.participant_id
+        WHERE s.meet_name = meet_name_value
+        ORDER BY p.name
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+
+
+--5.
+--For an Event and Meet, display all results sorted by time.
+--Include the heat, swimmer(s) name(s), and rank.
+
+--given event_id
+--return 
+--event gender, distance, stroke
+--event type as '' empty string for an individual event
+--event type as 'relay' string for a relay event
+DROP FUNCTION IF EXISTS GetEventType(
+    event_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetEventType (
+    event_id_value VARCHAR(10))
+RETURNS VARCHAR(10)
+
+AS $$
+    DECLARE
+        event_type VARCHAR(10);
+        legs INT;
+    BEGIN
+        SELECT COUNT(*) into legs
+        FROM StrokeOf 
+        WHERE event_id=event_id_value;
+        IF legs > 1 THEN
+            event_type = 'relay';
+        ELSE
+            event_type = '';
+        END IF;
+        RETURN event_type;
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+--given event_id
+--return event.gender, event_distance, event_strok
+DROP FUNCTION IF EXISTS GetEventName(
+    event_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetEventName (
+    event_id_value VARCHAR(10))
+RETURNS TABLE
+(
+    gender VARCHAR(1),
+    distance INT,
+    stroke VARCHAR(20)
+)
+AS $$
+    BEGIN
+        RETURN QUERY 
+        (SELECT DISTINCT
+         e.gender, e.distance,
+         s.stroke
+         FROM Event e
+         INNER JOIN StrokeOf s
+         ON e.id=s.event_id
+         WHERE e.id=event_id_value
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--return individual event info
+DROP FUNCTION IF EXISTS GetEventInfoInd(
+    meet_name_value VARCHAR(20), 
+    event_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetEventInfoInd (
+    meet_name_value VARCHAR(20), 
+    event_id_value VARCHAR(10))
+RETURNS TABLE 
+(t DECIMAL,
+ event_rank bigint,
+ heat_id VARCHAR(10),
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20),
+ org_id VARCHAR(10),
+ school VARCHAR(20)
+ )
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.t, m.event_rank,
+        m.heat_id, 
+        m.participant_id, m.swimmer_name, 
+        m.org_id, m.school
+        FROM meet_individual_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.event_id=event_id_value
+        ORDER BY m.t
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--return relay event info with individual times
+DROP FUNCTION IF EXISTS GetEventInfoGroup(
+    meet_name_value VARCHAR(20), 
+    event_id_value VARCHAR(10));
+CREATE OR REPLACE FUNCTION GetEventInfoGroup (
+    meet_name_value VARCHAR(20), 
+    event_id_value VARCHAR(10))
+RETURNS TABLE 
+(group_time DECIMAL,
+ group_event_rank bigint ,
+ heat_id VARCHAR(10),
+ org_id VARCHAR(10),
+ school VARCHAR(20),
+ leg INT,
+ participant_id VARCHAR(10),
+ swimmer_name VARCHAR(20), 
+ individual_time DECIMAL)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        m.group_time,
+        m.group_event_rank,
+        m.heat_id, 
+        m.org_id, m.school,
+        m.leg,
+        m.participant_id, m.swimmer_name, 
+        m.individual_time
+        FROM meet_group_info m 
+        WHERE m.meet_name = meet_name_value
+        AND m.event_id=event_id_value
+        ORDER BY m.group_time
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
 
 

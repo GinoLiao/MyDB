@@ -778,14 +778,21 @@ class SwimMeetDBApp(cmd.Cmd):
                            '   heatsheet score [meet_name]',
                            ]) )
 
-    #check if the length of input args is valid
+    '''
+    check if the length of input args is valid
+    '''
     def check_arg_len(self, args, length):
         if len(args) != length:
             print("***Invalid number of arguments.")
             return False
         return True
 
-
+    '''
+    return event name 
+    given 
+    gender, distance, stroke,
+    is_relay 
+    '''
     def get_event_name(self, gender, distance, stroke, relay):
         res = ""
         if gender=="M":
@@ -796,8 +803,28 @@ class SwimMeetDBApp(cmd.Cmd):
         res += d + " meters " + stroke + " " + relay
         return res
 
+    '''
+    Convert tuple result from database to a 
+    list that not only generates event_name from
+    event's gender, distance and stroke
+    but also convert time in decimal type to readable float type
+    row--the raw data tuple fetched from database
+    relay--True if this row is fetched from relay events
+           False for individual events
+    '''
+    def convertToList(self, row, relay):
+        newlist = []
+        relay_str = 'relay' if relay else ''
+        newlist.append(self.get_event_name(row[0], row[1], row[2], relay_str))
+        newlist[1:] = row[3:]
+        newlist[-1] = float(newlist[-1])
+        if relay:
+            newlist[3] = float(newlist[3])
+        return newlist
 
-    #meet info
+    '''
+    For a Meet, display a Heat Sheet.
+    '''
     def meet_info(self, l):
         meet_name = l[0]
         print('Heat sheet of individual events in meet ', meet_name)
@@ -807,45 +834,193 @@ class SwimMeetDBApp(cmd.Cmd):
                         'evet_rank', 'time'))
         rows = self.callDBFunc('GetMeetInfoInd', l)
         for row in rows:
-            newlist = []
-            newlist.append(self.get_event_name(row[0], row[1], row[2], ''))
-            newlist[1:] = row[3:]
-            newlist[-1] = float(newlist[-1])
-            #print(newlist)
+            newlist = self.convertToList(row, False)
             t.add_row(newlist)
         print(t)
 
-        '''
+        
         print('\nHeat sheet of relay events in meet ', 
             meet_name, 
             ' (with individual time)')
-        t = PrettyTable(('Name', 'Age'))
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'group_event_rank', 'group_time',
+                        'org_id', 'school_name',
+                        'leg',
+                        'participant_id', 'swimmer_name',
+                        'individual_time'))
         rows = self.callDBFunc('GetMeetInfoGroup', l)
         for row in rows:
-            t.add_row(row)
+            newlist = self.convertToList(row, True)
+            t.add_row(newlist)
         print(t)
 
         
         print('\nHeat sheet of relay events in meet ', 
             meet_name, 
             ' (group info only)')
-        t = PrettyTable(('Name', 'Age'))
-        rows = self.callDBFunc('GetMeetInfoGroup', l)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'group_event_rank', 'group_time',
+                        'org_id', 'school_name'))
+        rows = self.callDBFunc('GetMeetInfoGroupOnly', l)
+        for row in rows:
+            newlist = []
+            newlist.append(self.get_event_name(row[0], row[1], row[2], 'relay'))
+            newlist[1:] = row[3:]
+            newlist[3] = float(newlist[3])
+            t.add_row(newlist)
+        print(t)
+        
+
+
+    
+
+
+    '''
+    For a Participant and Meet, display a Heat Sheet 
+    limited to just that swimmer,
+    including any relays they are in.
+    '''
+    def swimmer_info(self, l):
+        meet_name = l[0]
+        #get swimmer's name
+        swimmer_info = self.callDBFunc('GetParticipant', l[1:])[0]
+        swimmer_name = swimmer_info[-1]
+
+        #individual events
+        print('Heat sheet of swimmer ', swimmer_name, 
+            ' in individual events of meet ', meet_name)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'org_id', 'school_name',
+                        'event_rank', 'time'))
+        rows = self.callDBFunc('GetParticipantInfoInd', l)
+        for row in rows:
+            newlist = self.convertToList(row, False)
+            t.add_row(newlist)
+        print(t)
+
+        #relay events
+        print('Heat sheet of swimmer ', swimmer_name, 
+            ' in relay events of meet ', meet_name)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'group_event_rank', 'group_time',
+                        'org_id', 'school_name',
+                        'leg', 'individual_time'))
+        rows = self.callDBFunc('GetParticipantInfoGroup', l)
+        for row in rows:
+            newlist = self.convertToList(row, True)
+            t.add_row(newlist)
+        print(t)
+#test
+#heatsheet swimmer NCAA_Summer P187734
+#heatsheet swimmer SouthConfed P844138
+
+
+
+    '''
+    For a School and Meet, display a Heat Sheet 
+    limited to just that School’s swimmers
+    '''
+    def school_info(self, l):
+        meet_name = l[0]
+        #get school's name
+        school_name = self.callDBFunc('GetOrg', l[1:])[0][1]
+        print(school_name)
+
+        #individual events
+        print('Heat sheet of ', school_name, 
+            ' in individual events of meet ', meet_name)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'participant_id', 'swimmer_name',
+                        'event_rank', 'time'))
+        rows = self.callDBFunc('GetSchoolInfoInd', l)
+        for row in rows:
+            newlist = self.convertToList(row, False)
+            t.add_row(newlist)
+        print(t)
+
+        #relay events
+        print('Heat sheet of ', school_name, 
+            ' in relay events of meet ', meet_name)
+        t = PrettyTable(('Event_name', 'heat_id', 
+                        'group_event_rank', 'group_time',
+                        'participant_id', 'swimmer_name',
+                        'leg', 'individual_time'))
+        rows = self.callDBFunc('GetSchoolInfoGroup', l)
+        for row in rows:
+            newlist = self.convertToList(row, True)
+            t.add_row(newlist)
+        print(t)
+#test
+#heatsheet school_info NCAA_Summer U502
+#heatsheet school_info SouthConfed U430
+
+
+    #meet school swimmers
+    '''
+    For a School and Meet, display 
+    just the names of the competing swimmers.
+    '''
+    def school_swimmer(self, l):
+        meet_name = l[0]
+        #get school's name
+        school_name = self.callDBFunc('GetOrg', l[1:])[0][1]
+        print(school_name)
+
+        #individual events
+        print('List of competing swimmers from ', school_name)
+        t = PrettyTable(('participant_id', 'swimmer_name'))
+        rows = self.callDBFunc('GetSchoolSwimmers', l)
         for row in rows:
             t.add_row(row)
         print(t)
-        '''
+#heatsheet school_swimmer NCAA_Summer U430
+
+    
+
+    #meet event 
+    '''
+    For an Event and Meet, display all results sorted by time.
+    Include the heat, swimmer(s) name(s), and rank.
+    '''
+    def event_info(self, l):
+        meet_name = l[0]
+        print(l[1])
+        event_type = self.callDBFunc('GetEventType', [l[1]])[0][0]
+        rows = None
+        t=None
+        if event_type=='':   #individual event
+            rows = self.callDBFunc('GetEventInfoInd', l)
+            t = PrettyTable(('time','rank', 
+                        'heat_id',
+                        'participant_id', 'swimmer_name',
+                        'org_id', 'school_name'))
+        else:   #relay event
+            rows = self.callDBFunc('GetEventInfoGroup', l)
+            t = PrettyTable(('group_time','group_event_rank', 
+                        'heat_id',
+                        'org_id', 'school_name',
+                        'participant_id', 'swimmer_name',
+                        'leg', 'individual_time'))
+
+        #print title
+        q = self.callDBFunc('GetEventName', [l[1]])
+        event_name = self.get_event_name(q[0][0], q[0][1], q[0][2], event_type)
+        print('Heat sheet of ', event_name, ' event of meet ', meet_name)
+        #print table
+        for row in rows:
+            newlist = list(row)
+            newlist[0] = float(newlist[0])
+            if event_type=='relay':
+                newlist[-1] = float(newlist[-1])
+            t.add_row(newlist)
+        print(t)
+#test
+#heatsheet event NCAA_Summer E0107
+#heatsheet event SouthConfed E0307
+
 
 
     #meet scores
-
-    #meet school heats
-
-    #meet school swimmers
-
-    #meet participant
-
-    #meet event 
     
 
 
