@@ -28,8 +28,8 @@ class SwimMeetDBApp(cmd.Cmd):
     table_names = ['Org', 'Meet', 'Participant', 'Leg',
                  'Stroke', 'Distance', 'Event', 'StrokeOf',
                  'Heat', 'Swim']
-    params = None   #connection parameters
-    #params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
+    #params = None   #connection parameters
+    params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
     
     
     #connect to db
@@ -39,7 +39,7 @@ class SwimMeetDBApp(cmd.Cmd):
             print("*** invalid number of arguments.\nconnect [hostname] [dbname] [username] [password]")
             return
         try:
-            self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
+            #self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
             conn.commit()
@@ -296,7 +296,7 @@ class SwimMeetDBApp(cmd.Cmd):
 
     def help_upsertDistance(self):
         print ('\n'.join([ '',
-                           'upsertLeg [distance]',
+                           'upsertDistance [distance]',
                            'Update or insert a distance',
                            'Primary key (distance)',
                            '[distance]: a possible distance of races in the Swim Meeting',
@@ -385,7 +385,7 @@ class SwimMeetDBApp(cmd.Cmd):
 
     def help_upsertStrokeOf(self):
         print ('\n'.join([ '',
-                           'upsertEvent [event_id] [leg] [stroke]',
+                           'upsertStrokeOf [event_id] [leg] [stroke]',
                            'Update or insert stroke of a leg of a particular event',
                            'Primary key (event_id, leg)',
                            '[event_id]: id of the Event',
@@ -568,12 +568,25 @@ class SwimMeetDBApp(cmd.Cmd):
 
     def help_get(self):
         print ('\n'.join([ '',
-                           'getOrg [table] [param1] [param2] ...',
+                           'get [table] [param1] [param2] ...',
                            'Call a function to get information of the table',
                            '[table]: name of the table',
                            '         choices includes:',
                            '         Org, Meet, Participant, Stroke, Leg,',
                            '         Distance, Event, StrokeOf, Heat, Swim',
+                           '[params]: primary keys of the table,  ',
+                           '          separated by space',
+                           'Primary key list:',
+                           'Org:          [org_id]',
+                           'Meet:         [meet_name]',
+                           'Participant:  [participant_id]',
+                           'Stroke:       [stroke]',
+                           'Leg:          [leg]',
+                           'Distance:     [distance]',
+                           'Event:        [event_id]',
+                           'StrokeOf:     [event_id] [leg]',
+                           'Heat:         [heat_id] [evnet_id] [meet_name]',
+                           'Swim:         [heat_id] [evnet_id] [meet_name] [participant_id]',
                            ]) )
 
 
@@ -584,9 +597,10 @@ class SwimMeetDBApp(cmd.Cmd):
     #########################################
 
     '''
+    read hw6.csv
     read csv, assuming the data file is valid. No error checking
     '''
-    def do_readCSV(self, args):
+    def do_read(self, args):
         l = shlex.split(args)
         if len(l)!=1:
             print("*** invalid number of arguments. Should be 1.")
@@ -613,10 +627,10 @@ class SwimMeetDBApp(cmd.Cmd):
             print("Please check your input path.")
 
 
-# readCSV hw6.csv
-    def help_readCSV(self):
+# read hw6.csv
+    def help_read(self):
         print ('\n'.join([ '',
-                           'readCSV [path]',
+                           'read [path]',
                            'Read CSV file and insert or update data to database.',
                            '[path]: path of the target CSV file',
                            ]) )
@@ -666,7 +680,7 @@ class SwimMeetDBApp(cmd.Cmd):
             print(error)
             print("Please check your input path.")
 
-# readCSV hw6.csv
+# writeCSV hw6.csv
     def help_writeCSV(self):
         print ('\n'.join([ '',
                            'writeCSV [path]',
@@ -755,18 +769,33 @@ class SwimMeetDBApp(cmd.Cmd):
                            'heatsheet [htype] [meet_name] [None/org_id/event_id/participant_id]',
                            'Get a type of heat sheet of a Swim Meeting.',
                            'No empty string or null are allowed in parameter fields.',
-                           '1. To get a whole heat sheet of a meet:',
+                           '\n[htype]: heat sheet type',
+                           '  including: info, swimmer, school_info, school_swimmer, event, score',
+                           '\nList of heat sheet types',
+                           '1. info', 
+                           'To get a whole heat sheet of a meet:',
                            '   heatsheet info [meet_name]',
-                           '2. To get a heat sheet of a swimmer in a meet:',
+                           '   i.e. heatsheet info NCAA_Summer\n',
+                           '2. swimmer',
+                           'To get a heat sheet of a swimmer in a meet:',
                            '   heatsheet swimmer [meet_name] [participant_id]',
-                           '3. To get a heat sheet of a school\'s swimmers in a meet:',
+                           '   i.e. heatsheet swimmer NCAA_Summer P12345\n',
+                           '3. school_info',
+                           'To get a heat sheet of a school\'s swimmers in a meet:',
                            '   heatsheet school_info [meet_name] [org_id of school]',
-                           '4. To get competing swimmers of a school in a meet:',
+                           '   i.e. heatsheet school_info NCAA_Summer U12345',
+                           '4. school_swimmer',
+                           'To get competing swimmers of a school in a meet:',
                            '   heatsheet school_swimmer [meet_name] [org_id of school]',
-                           '5. To get a heat sheet of an event in a meet:',
+                           '   i.e. heatsheet school_swimmer NCAA_Summer U12345\n',
+                           '5. event',
+                           'To get a heat sheet of an event in a meet:',
                            '   heatsheet event [meet_name] [event_id]',
-                           '6. To get scores of school in a meet:',
+                           '   i.e. heatsheet event NCAA_Summer E12345\n',
+                           '6. score',
+                           'To get scores of school in a meet:',
                            '   heatsheet score [meet_name]',
+                           '   i.e. heatsheet score NCAA_Summer\n',
                            ]) )
 
     '''
@@ -860,7 +889,9 @@ class SwimMeetDBApp(cmd.Cmd):
             newlist[3] = float(newlist[3])
             t.add_row(newlist)
         print(t)
-        
+#test
+#heatsheet info NCAA_Summer
+#heatsheet info SouthConfed 
 
 
     
@@ -1023,9 +1054,7 @@ class SwimMeetDBApp(cmd.Cmd):
         print(t)
 #test
 #heatsheet score NCAA_Summer
-    
-
-
+  
     
 
     def help_app(self):

@@ -1,11 +1,4 @@
 
--- DROP SCHEMA IF EXISTS assignment6db;
--- CREATE SCHEMA assignment6db;
--- CREATE USER assignment6db PASSWORD 'assignment6db_pwd';
--- GRANT ALL ON SCHEMA assignment6db to assignment6db;
--- GRANT ALL ON ALL TABLES IN SCHEMA assignment6db to assignment6db;
-
---postgresql://ricedb:zl15ricedb@localhost/postgres
 
 
 DROP TABLE IF EXISTS Org CASCADE;
@@ -24,7 +17,6 @@ CREATE TABLE Org (
     name VARCHAR(20),
     is_univ BOOLEAN NOT NULL,
     PRIMARY KEY (id)
-
 );
 
 CREATE TABLE Meet (
