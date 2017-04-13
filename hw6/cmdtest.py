@@ -754,7 +754,7 @@ class SwimMeetDBApp(cmd.Cmd):
         elif htype=='score':
             if not self.check_arg_len(l, 2):
                 return
-            self.meet_info(l[1:])
+            self.meet_school_scores(l[1:])
         else:
             print('Please enter valid [type] of heat sheet you want.')
 
@@ -984,7 +984,6 @@ class SwimMeetDBApp(cmd.Cmd):
     '''
     def event_info(self, l):
         meet_name = l[0]
-        print(l[1])
         event_type = self.callDBFunc('GetEventType', [l[1]])[0][0]
         rows = None
         t=None
@@ -1020,7 +1019,20 @@ class SwimMeetDBApp(cmd.Cmd):
 
 
 
-    #meet scores
+    '''
+    For a Meet, display the scores of each school, sorted by scores.
+    '''
+    def meet_school_scores(self, l):
+        print(l)
+        meet_name = l[0]
+        rows = self.callDBFunc('GetMeetScore', l)
+        print('Scores of school in meet ', meet_name)
+        t = PrettyTable(('org_id', 'school_name', 'total_score'))
+        for row in rows:
+            t.add_row(row)
+        print(t)
+#test
+#heatsheet score NCAA_Summer
     
 
 

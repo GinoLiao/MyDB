@@ -960,7 +960,8 @@ AS $$
         m.group_event_rank,
         m.group_time,
         m.org_id, m.school
-        FROM meet_group_time_rank m WHERE m.meet_name = meet_name_value);
+        FROM meet_group_time_rank m 
+        WHERE m.meet_name = meet_name_value);
     END $$
 LANGUAGE plpgsql
 STABLE;
@@ -1282,5 +1283,148 @@ AS $$
     END $$
 LANGUAGE plpgsql
 STABLE;
+
+
+
+
+
+
+--6.
+--For a Meet, display the scores of each school, sorted by scores.
+--function to calculate score, given event_id and event_rank
+--event_id is used to identify whether this event is a relay event
+DROP FUNCTION IF EXISTS calculateScore(
+    event_id_value VARCHAR(10),
+    event_rank_value bigint);
+CREATE OR REPLACE FUNCTION calculateScore (
+    event_id_value VARCHAR(10),
+    event_rank_value bigint)
+RETURNS INT
+AS $$
+    DECLARE
+        legs INT;
+    BEGIN
+        SELECT COUNT(*) into legs
+        FROM StrokeOf 
+        WHERE event_id=event_id_value;
+        --relay event
+        IF legs > 1 THEN
+            CASE event_rank_value
+                WHEN 1 THEN
+                    RETURN 8;
+                WHEN 2 THEN
+                    RETURN 4;
+                WHEN 3 THEN
+                    RETURN 2;
+                ELSE
+                    RETURN 0;
+            END CASE;
+        ELSE
+            CASE event_rank_value
+                WHEN 1 THEN
+                    RETURN 6;
+                WHEN 2 THEN
+                    RETURN 4;
+                WHEN 3 THEN
+                    RETURN 3;
+                WHEN 4 THEN
+                    RETURN 2;
+                WHEN 5 THEN
+                    RETURN 1;
+                ELSE
+                    RETURN 0;
+            END CASE;
+        END IF;          
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+--scores of relay events
+DROP VIEW IF EXISTS group_scores;
+CREATE VIEW group_scores AS
+SELECT meet_name, event_id, group_event_rank, org_id, school,
+calculateScore(event_id, group_event_rank) AS score
+FROM meet_group_time_rank
+WHERE group_event_rank <= 3
+ORDER BY meet_name, org_id
+;
+
+
+--sum of scores of relay events of each school in each meet
+DROP VIEW IF EXISTS school_scores_group;
+CREATE VIEW school_scores_group AS
+SELECT meet_name, org_id, school,
+SUM(score) AS sum_score
+FROM group_scores
+GROUP BY meet_name, org_id, school
+;
+
+
+
+--scores of individual events
+DROP VIEW IF EXISTS individual_scores;
+CREATE VIEW individual_scores AS
+SELECT meet_name, event_id, event_rank, org_id, school,
+calculateScore(event_id, event_rank) AS score
+FROM meet_individual_info
+WHERE event_rank <= 5
+ORDER BY meet_name, org_id
+;
+
+--sum of scores of individual events of each school in each meet
+DROP VIEW IF EXISTS school_scores_individual;
+CREATE VIEW school_scores_individual AS
+SELECT meet_name, org_id, school,
+SUM(score) as sum_score
+FROM individual_scores
+GROUP BY meet_name, org_id, school
+;
+
+
+
+--total score 
+--(including both individual events and relay events) 
+--of each school in each meet
+DROP VIEW IF EXISTS school_scores;
+CREATE VIEW school_scores AS
+SELECT 
+COALESCE (g.meet_name, i.meet_name) AS meet_name, 
+COALESCE (g.org_id, i.org_id) AS org_id, 
+COALESCE (g.school, i.school) AS school, 
+COALESCE (i.sum_score, 0)+COALESCE (g.sum_score, 0) AS total_score
+FROM school_scores_group g
+FULL JOIN school_scores_individual i
+ON g.meet_name=i.meet_name
+AND g.org_id=i.org_id
+;
+
+
+--function to fetch scores of schools given meet_name
+--result if sorted by scores Descending
+DROP FUNCTION IF EXISTS GetMeetScore(
+    meet_name_value VARCHAR(20));
+CREATE OR REPLACE FUNCTION GetMeetScore (
+    meet_name_value VARCHAR(20))
+RETURNS TABLE 
+(org_id VARCHAR(10),
+ school VARCHAR(20),
+ total_score bigint)
+AS $$
+    BEGIN
+        RETURN QUERY (SELECT 
+        s.org_id, s.school,
+        s.total_score
+        FROM school_scores s 
+        WHERE s.meet_name = meet_name_value
+        ORDER BY s.total_score DESC
+        );
+    END $$
+LANGUAGE plpgsql
+STABLE;
+
+
+
+
 
 
