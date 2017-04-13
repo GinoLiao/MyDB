@@ -28,23 +28,18 @@ class SwimMeetDBApp(cmd.Cmd):
     table_names = ['Org', 'Meet', 'Participant', 'Leg',
                  'Stroke', 'Distance', 'Event', 'StrokeOf',
                  'Heat', 'Swim']
-    #params = None   #connection parameters
-    params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
+    params = None   #connection parameters
+    #params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
     
     
     #connect to db
-    def do_connect(self, args):
-        print(args)
-        print(type(args))
-        
+    def do_connect(self, args):       
         l = shlex.split(args)
-        print(l[0])
-        print(l[1])
         if len(l)!=4:
             print("*** invalid number of arguments.\nconnect [hostname] [dbname] [username] [password]")
             return
         try:
-            #self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
+            self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
             conn.commit()
@@ -604,19 +599,15 @@ class SwimMeetDBApp(cmd.Cmd):
                 count=0
                 for row in spamreader:
                     if(row[0].startswith("*")):
-                        print("count: ", count)
+                        if curTable!=None:
+                          print("upserted: ", count)
                         count=0
                         print(row[0].strip(',*'))
                         curTable = row[0].strip(',*')
-                        
                     else:
-                        #length = 4
-                        #newrow = row[:length]
-                        #print(newrow)
-                        #print(parameters)
                         count+=1
                         self.upsert(curTable, row)
-                print("count: ", count)
+                print("upserted: ", count)
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             print("Please check your input path.")
@@ -1023,7 +1014,6 @@ class SwimMeetDBApp(cmd.Cmd):
     For a Meet, display the scores of each school, sorted by scores.
     '''
     def meet_school_scores(self, l):
-        print(l)
         meet_name = l[0]
         rows = self.callDBFunc('GetMeetScore', l)
         print('Scores of school in meet ', meet_name)
@@ -1037,26 +1027,15 @@ class SwimMeetDBApp(cmd.Cmd):
 
 
     
-    def do_greet(self, person):
-        if person:
-            print ("hi,", person)
-        else:
-            print ('hi')
-    
-    def help_greet(self):
-        print ('\n'.join([ 'greet [person]',
-                           'Greet the named person',
-                           ]) )
 
     def help_app(self):
         print ('\n'.join([ 'NULL or "" will be treated as NULL in table',
                            'Use "" to input an empty field',
                            'i.e. upsertXXX xxx "" ',
-                           'Use NULL to input NULL',
-                           'i.e. upsertXXX xxx NULL',
+                           
                            ]) )
     
-    def do_EOF(self, line):
+    def do_quit(self, line):
         return True
 
 if __name__ == '__main__':
