@@ -8,11 +8,17 @@ import sys
 #Please check README to install it
 from prettytable import PrettyTable
 
+"""Swim Meeting Database application."""
 class SwimMeetDBApp(cmd.Cmd):
-    """Swim Meeting Database application."""
-    intro = 'Welcome to the Swim Meeting DB shell.  Type help or ? to list commands.\nConnect to your DB by using command:\nconnect [hostname] [dbname] [username] [password]'
+    intro = '\n'.join([ 'Welcome to the Swim Meeting DB shell.\n',
+            '  Type help or ? to list commands.\n',
+            '  Type "help app" to check general instructions.\n',
+            '  Type "help [command_name]" to check detailed instructions.\n',
+            'Connect to your DB by using command:',
+            'connect [hostname] [dbname] [username] [password]\n'
+                      ]) 
     prompt = '(swim) '
-    file = None
+
     #length of parameters in table
     lendict={'Org':3, 'Meet':4, 'Participant':4, 'Stroke':1,
             'Distance':1, 'Leg':1, 'Event':3, 'StrokeOf':3,
@@ -23,7 +29,7 @@ class SwimMeetDBApp(cmd.Cmd):
             'Heat':3, 'Swim':4}
     #tables names in insert order
     #this ensures we write CSV file in correct order so that when user 
-    #read the written CSV file, he or she can read and insert tables to
+    #read the written CSV file, the user can just read and insert tables to
     #DB in the default order of written CSV file
     table_names = ['Org', 'Meet', 'Participant', 'Leg',
                  'Stroke', 'Distance', 'Event', 'StrokeOf',
@@ -32,7 +38,7 @@ class SwimMeetDBApp(cmd.Cmd):
     params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
     
     
-    #connect to db
+    '''connect to db'''
     def do_connect(self, args):       
         l = shlex.split(args)
         if len(l)!=4:
@@ -50,8 +56,8 @@ class SwimMeetDBApp(cmd.Cmd):
             print("Connection failed, check your inputs")				
 
     def help_connect(self):
-        print ('\n'.join([ 'connect [hostname] [dbname] [username] [password]',
-                           'Connect to the database',
+        print ('\n'.join([ '\nconnect [hostname] [dbname] [username] [password]',
+                           '\nConnect to the database.\n',
                            ]) )
     
     #########################################
@@ -60,7 +66,7 @@ class SwimMeetDBApp(cmd.Cmd):
     #########################################
     #########################################
 
-    #update or insert an organization or university
+    '''update or insert an organization or university'''
     def do_upsertOrg(self, args):
         l = shlex.split(args)
         if len(l)!=3:
@@ -72,7 +78,7 @@ class SwimMeetDBApp(cmd.Cmd):
             return
         id = l[0]
         name = l[1]
-        #is_univ input should not be null or empty
+        #is_univ input cannot be null or empty
         if l[2]=='' or l[2]=='NULL':
             print('The [is_univ] field of upsertOrg command cannot be empty or NULL.')
             return
@@ -90,23 +96,24 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertOrg(self):
         print ('\n'.join([ '',
                            'upsertOrg [org_id] [name] [is_univ]',
-                           'Update or insert a new organization',
-                           'Primary key (org_id)',
-                           '[org_id]: id of the organization or university',
-                           '[name]: name of the organization or university',
-                           '      If the name includes space, using quotation marks',
-                           '      i.e. upsertOrg O001 "Rice University" true',
-                           '[is_univ]: TRUE for university, FALSE for organization',
-                           '         this field is case-insensitive',
+                           '\nUpdate or insert a new organization.',
+                           '\nPrimary key (org_id)',
+                           '[org_id]:  id of the organization or university',
+                           '[name]:    name of the organization or university',
+                           '           If the name includes space, using quotation marks',
+                           '           i.e. upsertOrg O001 "Rice University" true',
+                           '[is_univ]: TRUE for university, FALSE for organization. CANNOT BE NULL',
+                           '           This field is case-insensitive',
+                           '',
                            ]) )
 
-    #update or insert a Meet info
+    '''update or insert a Meet info'''
     def do_upsertMeet(self, args):
         l = shlex.split(args)
         if len(l)!=4:
             print("*** invalid number of arguments.")
             return
-        #Leg input should not be null or empty
+        #name input cannot be null or empty
         if l[0]=='' or l[0]=='NULL':
             print('The [name] field of upsertMeet command cannot be empty or NULL.')
             return
@@ -143,21 +150,22 @@ class SwimMeetDBApp(cmd.Cmd):
 
     def help_upsertMeet(self):
         print ('\n'.join([ '',
-                           'upsertMeet [org_id] [name] [is_univ]',
-                           'Update or insert a new Meet info',
+                           'upsertMeet [name] [start_date] [num_days] [org_id]',
+                           '\nUpdate or insert a new Meet info.\n',
                            'Primary key (name)',
-                           '[name]: name of the Swim Meeting',
-                           '      If the name includes space, using quotation marks',
-                           '      i.e. upsertMeet xxx "Rice University" xxx xxx',
-                           '[start_date]: YYYY-MM-DD',
-                           '              start date of the Swim Meeting',
-                           '[num_days]: number of days of this Swim Meeting',
-                           '            Please enter a number larger than 0',
-                           '[org_id]: id of the organization or university',
+                           '[name]:       name of the Swim Meeting',
+                           '              If the name includes space, use quotation marks',
+                           '              i.e. upsertMeet "Rice University" xxx xxx xxx',
+                           '[start_date]: start date of the Swim Meeting',
+                           '              must be in form YYYY-MM-DD',
+                           '              i.e. upsertMeet xxx 2000-01-01 xxx xxx ',
+                           '[num_days]:   number of days of this Swim Meeting',
+                           '              Please enter a number larger than 0',
+                           '[org_id]:     id of the organization or university',
                            ]) )
 
 
-    #Update or insert a participant info
+    '''Update or insert a participant info'''
     def do_upsertParticipant(self, args):
         l = shlex.split(args)
         if len(l)!=4:
@@ -178,38 +186,39 @@ class SwimMeetDBApp(cmd.Cmd):
      
         org_id = l[2]
 
-        #self.upsert function will convert empty string or 'NULL'in [name] field to None
+        #self.upsert function will convert empty string or 'NULL'
+        #in [name] field to None
         name = l[3]
 
         #connect and upsert
         self.upsert('Participant', l)
         
-                
 
     def help_upsertParticipant(self):
         print ('\n'.join([ '',
                            'upsertParticipant [id] [gender] [org_id] [name]',
-                           'Update or insert a participant info',
+                           '\nUpdate or insert a participant info. \n',
                            'Primary key (id)',
-                           '[id]: id of the participant',
-                           '[gender]: gender of the swimming',
-                           '          [gender] should be either "M" or "F".',
-                           '[org_id]: id of the university of this participant',
-                           '[name]: name of this participant',
-                           '      If the name includes space, using quotation marks',
-                           '      i.e. upsertParticipant xxx xxx xxx "first_name last_name"',
+                           '[id]:     id of the participant',
+                           '[gender]: gender of the swimming. CANNOT BE NULL',
+                           '          [gender] should be either \'M\' or \'F\'.',
+                           '[org_id]: id of the university of this participant. CANNOT BE NULL',
+                           '[name]:   name of this participant',
+                           '          If the name includes space, using quotation marks',
+                           '          i.e. upsertParticipant xxx xxx xxx "first_name last_name"',
+                           '',
                            ]) )
 
 
 
-    #Update or insert a participant info
+    '''Update or insert a possible leg number.'''
     def do_upsertLeg(self, args):
         l = shlex.split(args)
         if len(l)!=1:
             print("*** invalid number of arguments.")
             return
 
-        #Leg input should not be null or empty
+        #Leg input cannot be null or empty
         if args=='' or args=='NULL':
             print('The [leg] field of upsertLeg command cannot be empty or NULL.')
             return
@@ -233,14 +242,15 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertLeg(self):
         print ('\n'.join([ '',
                            'upsertLeg [leg]',
-                           'Update or insert a Leg',
+                           '\nUpdate or insert a Leg.\n',
                            'Primary key (leg)',
-                           '[leg]: a possible number of the legs in relay races',
+                           '[leg]: a possible number of the leg in relay races',
                            '       [leg] should be an integer larger than 0.',
+                           '',
                            ]) )
 
 
-    #Update or insert a participant info
+    '''Update or insert a possible stroke.'''
     def do_upsertStroke(self, args):
         l = shlex.split(args)
         if len(l)!=1:
@@ -259,14 +269,14 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertStroke(self):
         print ('\n'.join([ '',
                            'upsertStroke [stroke]',
-                           'Update or insert a Stroke',
+                           '\nUpdate or insert a Stroke.\n',
                            'Primary key (stroke)',
-                           '[stroke]: a possible stroke in Swim Meeting',
+                           '[stroke]: a possible stroke in Swim Meeting\n',
                            ]) )
 
 
 
-    #Update or insert a participant info
+    '''Update or insert a possible distance.'''
     def do_upsertDistance(self, args):
         l = shlex.split(args)
         if len(l)!=1:
@@ -297,15 +307,16 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertDistance(self):
         print ('\n'.join([ '',
                            'upsertDistance [distance]',
-                           'Update or insert a distance',
+                           '\nUpdate or insert a distance.\n',
                            'Primary key (distance)',
                            '[distance]: a possible distance of races in the Swim Meeting',
                            '            [distance] should be an integer larger than 0.',
+                           '',
                            ]) )
 
 
 
-    #Update or insert a participant info
+    '''Update or insert an event info.'''
     def do_upsertEvent(self, args):
         l = shlex.split(args)
         if len(l)!=3:
@@ -315,14 +326,13 @@ class SwimMeetDBApp(cmd.Cmd):
         if '' in l or 'NULL' in l:
             print('No fields of upsertEvent command can be empty or NULL.')
             return
+
         conn = None
         id = l[0]
         gender = l[1]
-        #gender should not be null
         if gender not in ['M', 'F']:
             print("[gender] should be either 'M' or 'F'.")
             return 
-     
         distance = l[2]
         #distance should be an integer larger than 0
         try:
@@ -341,19 +351,20 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertEvent(self):
         print ('\n'.join([ '',
                            'upsertEvent [id] [gender] [distance]',
-                           'Update or insert an Event info',
+                           '\nUpdate or insert an Event info.\n',
                            'Primary key (id)',
-                           '[id]: id of the Event',
-                           '[gender]: gender of the Event',
-                           '          [gender] should be either "M" or "F".',
-                           '[distance]: distance of this event. SHOULD NOT BE NULL',
+                           '[id]:       id of the Event',
+                           '[gender]:   gender of the Event. CANNOT BE NULL',
+                           '            [gender] should be either "M" or "F".',
+                           '[distance]: distance of this event. CANNOT BE NULL',
                            '            [distance] should be an integer larger than 0.',
+                           '',
                            ]) )
 
 
 
 
-    #Update or insert a participant info
+    '''Update or insert StrokeOf info.'''
     def do_upsertStrokeOf(self, args):
         l = shlex.split(args)
         if len(l)!=3:
@@ -375,8 +386,7 @@ class SwimMeetDBApp(cmd.Cmd):
         except ValueError:
             print("Incorrect data format, [leg] should be an integer")
             return
-
-        #stroke should not be null    
+ 
         stroke = l[2]
 
         #connect and upsert
@@ -386,18 +396,19 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_upsertStrokeOf(self):
         print ('\n'.join([ '',
                            'upsertStrokeOf [event_id] [leg] [stroke]',
-                           'Update or insert stroke of a leg of a particular event',
+                           '\nUpdate or insert stroke of a leg of a particular event.\n',
                            'Primary key (event_id, leg)',
                            '[event_id]: id of the Event',
-                           '[leg]: a possible number of the legs in relay races',
-                           '       [leg] should be an integer larger than 0.',
-                           '[stroke]: stroke of this leg of this event. SHOULD NOT BE NULL',
+                           '[leg]:      leg number of the event',
+                           '            [leg] should be an integer larger than 0.',
+                           '[stroke]:   stroke of this leg of this event. CANNOT BE NULL',
+                           '',
                            ]) )
 
 
 
 
-    #Update or insert a participant info
+    '''Update or insert a heat info'''
     def do_upsertHeat(self, args):
         l = shlex.split(args)
         if len(l)!=3:
@@ -415,23 +426,23 @@ class SwimMeetDBApp(cmd.Cmd):
         #connect and upsert
         self.upsert('Heat', l)
 
-                
 
     def help_upsertHeat(self):
         print ('\n'.join([ '',
                            'upsertHeat [id] [event_id] [meet_name] ',
-                           'Update or insert a particular heat.',
+                           '\nUpdate or insert a particular heat.\n',
                            'Heat is a weak entity.',
                            'Primary key (id, event_id, meet_name)',
-                           '[id]: weak id of a heat',
-                           '[event_id]: id of the Event',
+                           '[id]:        weak id of a heat',
+                           '[event_id]:  id of the Event',
                            '[meet_name]: name of the Swim Meeting',
+                           '',
                            ]) )
 
 
 
     '''
-    Update or insert a participant info
+    Update or insert a participation info
     '''
     def do_upsertSwim(self, args):
         l = shlex.split(args)
@@ -476,15 +487,16 @@ class SwimMeetDBApp(cmd.Cmd):
 
     def help_upsertSwim(self):
         print ('\n'.join([ '',
-                           'upsertSwim [heat_id] [event_id] [meet_name] [participant_id] [leg] [t]',
-                           'Update or insert result of a participant in a particular heat.',
-                           'Primary key (heat_id, event_id, meet_name, participant_id)',
-                           '[heat_id]: heat id of a particular event in a particular Swim Meeting',
-                           '[event_id]: id of the Event',
-                           '[meet_name]: name of the Swim Meeting',
+                           'upsertSwim [heat_id] [event_id] [meet_name] [participant_id] [leg] [time]',
+                           '\nUpdate or insert result of a participant in a particular heat.',
+                           '\nPrimary key (heat_id, event_id, meet_name, participant_id)',
+                           '[heat_id]:        heat id of a particular event in a particular Swim Meeting',
+                           '[event_id]:       id of the Event',
+                           '[meet_name]:      name of the Swim Meeting',
                            '[participant_id]: id of the participant',
-                           '[leg]: the leg that this swimmer participates. SHOULD NOT BE NULL',
-                           '[time]: the finish time of this participant',
+                           '[leg]:            the leg that this swimmer participates. CANNOT BE NULL',
+                           '[time]:           the finish time of this participant',
+                           '',
                            ]) )
 
 
@@ -493,8 +505,6 @@ class SwimMeetDBApp(cmd.Cmd):
         conn = None
         function_name = 'Upsert' + table
         length = self.lendict[table]
-        # if table != 'Swim':
-        #     return
 
         #convert empty string or 'NULL' to None
         for i in range(length):
@@ -504,7 +514,7 @@ class SwimMeetDBApp(cmd.Cmd):
         #type cast for float value in 'Swim'
         if table == 'Swim' and row[5] != None:
             row[5] = float(row[5])
-        #print(row[:length])
+
         try:
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
@@ -569,14 +579,14 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_get(self):
         print ('\n'.join([ '',
                            'get [table] [param1] [param2] ...',
-                           'Call a function to get information of the table',
-                           '[table]: name of the table',
-                           '         choices includes:',
-                           '         Org, Meet, Participant, Stroke, Leg,',
-                           '         Distance, Event, StrokeOf, Heat, Swim',
+                           '\nUse primary keys to get a row of the table.',
+                           '[table]:  name of the table',
+                           '          choices includes:',
+                           '          Org, Meet, Participant, Stroke, Leg,',
+                           '          Distance, Event, StrokeOf, Heat, Swim',
                            '[params]: primary keys of the table,  ',
                            '          separated by space',
-                           'Primary key list:',
+                           '\nPrimary key list:',
                            'Org:          [org_id]',
                            'Meet:         [meet_name]',
                            'Participant:  [participant_id]',
@@ -587,6 +597,8 @@ class SwimMeetDBApp(cmd.Cmd):
                            'StrokeOf:     [event_id] [leg]',
                            'Heat:         [heat_id] [evnet_id] [meet_name]',
                            'Swim:         [heat_id] [evnet_id] [meet_name] [participant_id]',
+                           '\ni.e.  get Swim 1 E12345 NCAA_Summer P12345',
+                           '',
                            ]) )
 
 
@@ -606,6 +618,11 @@ class SwimMeetDBApp(cmd.Cmd):
             print("*** invalid number of arguments. Should be 1.")
             return
         path = args
+        #Limit the user to read data from CSV file
+        path = args
+        if not path.endswith('.csv'):
+            print("The input path should point to a CSV file. ")
+            return
         try:
             with open(path, newline='') as csvfile:
                 spamreader = csv.reader(csvfile, delimiter=',')
@@ -627,12 +644,13 @@ class SwimMeetDBApp(cmd.Cmd):
             print("Please check your input path.")
 
 
-# read hw6.csv
     def help_read(self):
         print ('\n'.join([ '',
                            'read [path]',
-                           'Read CSV file and insert or update data to database.',
+                           '\nRead CSV file and insert or update data to database.',
                            '[path]: path of the target CSV file',
+                           '\n i.e. read hw6.csv',
+                           '',
                            ]) )
 
 
@@ -643,10 +661,10 @@ class SwimMeetDBApp(cmd.Cmd):
     #########################################
     #########################################
     '''
-    writeCSV save.csv
+    write save.csv
     save all data to user-provided csv file
     '''
-    def do_writeCSV(self, args):
+    def do_write(self, args):
         l = shlex.split(args)
         if len(l)!=1:
             print("*** invalid number of arguments. Should be 1.")
@@ -680,20 +698,22 @@ class SwimMeetDBApp(cmd.Cmd):
             print(error)
             print("Please check your input path.")
 
-# writeCSV hw6.csv
-    def help_writeCSV(self):
+# 
+    def help_write(self):
         print ('\n'.join([ '',
-                           'writeCSV [path]',
-                           'Write all data in database to user-provided CSV file.',
+                           'write [path]',
+                           '\nWrite all data in database to user-provided CSV file.',
                            '[path]: path of the target CSV file',
+                           '\n i.e. write save.csv',
+                           '',
                            ]) )
 
 
-    #print results from query
-    def printQuery(self, rows):
-        if rows != None:
-            for row in rows:
-                print(row)
+    #########################################
+    #########################################
+    ############Util Function################
+    #########################################
+    #########################################
 
     '''
     call a function in database
@@ -717,6 +737,53 @@ class SwimMeetDBApp(cmd.Cmd):
         return res
 
 
+    '''
+    check if the length of input args is valid
+    '''
+    def check_arg_len(self, args, length):
+        if len(args) != length:
+            print("***Invalid number of arguments.")
+            return False
+        return True
+
+
+    '''
+    return event name 
+    given 
+    gender, distance, stroke,
+    is_relay 
+    '''
+    def get_event_name(self, gender, distance, stroke, relay):
+        res = ""
+        if gender=="M":
+            res += "Men's "
+        else:
+            res += "Women's "
+        d = str(distance)
+        res += d + " meters " + stroke + " " + relay
+        return res
+
+
+    '''
+    Convert tuple result from database to a 
+    list that not only generates event_name from
+    event's gender, distance and stroke
+    but also convert time in decimal type to readable float type
+    row--the raw data tuple fetched from database
+    relay--True if this row is fetched from relay events
+           False for individual events
+    '''
+    def convertToList(self, row, relay):
+        newlist = []
+        relay_str = 'relay' if relay else ''
+        newlist.append(self.get_event_name(row[0], row[1], row[2], relay_str))
+        newlist[1:] = row[3:]
+        newlist[-1] = float(newlist[-1])
+        if relay:
+            newlist[3] = float(newlist[3])
+        return newlist
+
+
 
     #########################################
     #########################################
@@ -728,8 +795,17 @@ class SwimMeetDBApp(cmd.Cmd):
     '''
     def do_heatsheet(self, args):
         l = shlex.split(args)
-        if len(l)<1:
+        if len(l) < 1:
             print("Please enter [type] of heat sheet you want.")
+            return
+        if len(l) < 2:
+            print("Please enter [meet_name] of heat sheet you want.")
+            return
+        #check for valid meet_name
+        meet_name = l[1]
+        meet_row = self.callDBFunc('GetMeet',[l[1]])
+        if len(meet_row) == 0:
+            print('This meet_name is not in database. Please check your input.')
             return
         #no empty string or null are allowed
         if '' in l or 'NULL' in l:
@@ -767,7 +843,7 @@ class SwimMeetDBApp(cmd.Cmd):
     def help_heatsheet(self):
         print ('\n'.join([ '',
                            'heatsheet [htype] [meet_name] [None/org_id/event_id/participant_id]',
-                           'Get a type of heat sheet of a Swim Meeting.',
+                           '\nGet a type of heat sheet of a Swim Meeting.',
                            'No empty string or null are allowed in parameter fields.',
                            '\n[htype]: heat sheet type',
                            '  including: info, swimmer, school_info, school_swimmer, event, score',
@@ -798,49 +874,7 @@ class SwimMeetDBApp(cmd.Cmd):
                            '   i.e. heatsheet score NCAA_Summer\n',
                            ]) )
 
-    '''
-    check if the length of input args is valid
-    '''
-    def check_arg_len(self, args, length):
-        if len(args) != length:
-            print("***Invalid number of arguments.")
-            return False
-        return True
-
-    '''
-    return event name 
-    given 
-    gender, distance, stroke,
-    is_relay 
-    '''
-    def get_event_name(self, gender, distance, stroke, relay):
-        res = ""
-        if gender=="M":
-            res += "Men's "
-        else:
-            res += "Women's "
-        d = str(distance)
-        res += d + " meters " + stroke + " " + relay
-        return res
-
-    '''
-    Convert tuple result from database to a 
-    list that not only generates event_name from
-    event's gender, distance and stroke
-    but also convert time in decimal type to readable float type
-    row--the raw data tuple fetched from database
-    relay--True if this row is fetched from relay events
-           False for individual events
-    '''
-    def convertToList(self, row, relay):
-        newlist = []
-        relay_str = 'relay' if relay else ''
-        newlist.append(self.get_event_name(row[0], row[1], row[2], relay_str))
-        newlist[1:] = row[3:]
-        newlist[-1] = float(newlist[-1])
-        if relay:
-            newlist[3] = float(newlist[3])
-        return newlist
+    
 
     '''
     For a Meet, display a Heat Sheet.
@@ -896,7 +930,6 @@ class SwimMeetDBApp(cmd.Cmd):
 
     
 
-
     '''
     For a Participant and Meet, display a Heat Sheet 
     limited to just that swimmer,
@@ -905,8 +938,11 @@ class SwimMeetDBApp(cmd.Cmd):
     def swimmer_info(self, l):
         meet_name = l[0]
         #get swimmer's name
-        swimmer_info = self.callDBFunc('GetParticipant', l[1:])[0]
-        swimmer_name = swimmer_info[-1]
+        swimmer_info = self.callDBFunc('GetParticipant', l[1:])
+        if len(swimmer_info)==0:
+            print('The participant_id does not exist in database.\n')
+            return
+        swimmer_name = swimmer_info[0][-1]
 
         #individual events
         print('Heat sheet of swimmer ', swimmer_name, 
@@ -921,7 +957,7 @@ class SwimMeetDBApp(cmd.Cmd):
         print(t)
 
         #relay events
-        print('Heat sheet of swimmer ', swimmer_name, 
+        print('\nHeat sheet of swimmer ', swimmer_name, 
             ' in relay events of meet ', meet_name)
         t = PrettyTable(('Event_name', 'heat_id', 
                         'group_event_rank', 'group_time',
@@ -945,8 +981,11 @@ class SwimMeetDBApp(cmd.Cmd):
     def school_info(self, l):
         meet_name = l[0]
         #get school's name
-        school_name = self.callDBFunc('GetOrg', l[1:])[0][1]
-        print(school_name)
+        school_info = self.callDBFunc('GetOrg', l[1:])
+        if len(school_info)==0:
+            print('The org_id of the school does not exist in database.')
+            return
+        school_name = school_info[0][1]
 
         #individual events
         print('Heat sheet of ', school_name, 
@@ -961,7 +1000,7 @@ class SwimMeetDBApp(cmd.Cmd):
         print(t)
 
         #relay events
-        print('Heat sheet of ', school_name, 
+        print('\nHeat sheet of ', school_name, 
             ' in relay events of meet ', meet_name)
         t = PrettyTable(('Event_name', 'heat_id', 
                         'group_event_rank', 'group_time',
@@ -985,8 +1024,11 @@ class SwimMeetDBApp(cmd.Cmd):
     def school_swimmer(self, l):
         meet_name = l[0]
         #get school's name
-        school_name = self.callDBFunc('GetOrg', l[1:])[0][1]
-        print(school_name)
+        school_info = self.callDBFunc('GetOrg', l[1:])
+        if len(school_info)==0:
+            print('The org_id of the school does not exist in database.')
+            return
+        school_name = school_info[0][1]
 
         #individual events
         print('List of competing swimmers from ', school_name)
@@ -997,7 +1039,6 @@ class SwimMeetDBApp(cmd.Cmd):
         print(t)
 #heatsheet school_swimmer NCAA_Summer U430
 
-    
 
     #meet event 
     '''
@@ -1006,6 +1047,11 @@ class SwimMeetDBApp(cmd.Cmd):
     '''
     def event_info(self, l):
         meet_name = l[0]
+        event_info = self.callDBFunc('GetEventName', [l[1]])
+        if len(event_info)==0:
+            print('The event does not exist in database.')
+            return
+
         event_type = self.callDBFunc('GetEventType', [l[1]])[0][0]
         rows = None
         t=None
@@ -1024,8 +1070,8 @@ class SwimMeetDBApp(cmd.Cmd):
                         'leg', 'individual_time'))
 
         #print title
-        q = self.callDBFunc('GetEventName', [l[1]])
-        event_name = self.get_event_name(q[0][0], q[0][1], q[0][2], event_type)
+        event_name = self.get_event_name(event_info[0][0], 
+                        event_info[0][1], event_info[0][2], event_type)
         print('Heat sheet of ', event_name, ' event of meet ', meet_name)
         #print table
         for row in rows:
@@ -1058,10 +1104,25 @@ class SwimMeetDBApp(cmd.Cmd):
     
 
     def help_app(self):
-        print ('\n'.join([ 'NULL or "" will be treated as NULL in table',
+        print ('\n'.join([ '\n###connect command: connect to database###',
+                           'Type "help connect" to get more detailed instructions.\n\n',
+                           '\n###Upsert commands: upsert a row of a table###',
+                           'including:',
+                           'upsertOrg, upsertMeet, upsertParticipant,',
+                           'upsertLeg, upsertStroke, upsertDistance,',
+                           'upsertEvent, upsertStrokeOf, upsertHeat, upsertSwim',
+                           'Type "help upsertXXX" to get more detailed instructions.\n\n',
+                           '\n###get command: get a row of a table###',
+                           'Type "help get" to get more detailed instructions.\n\n',
+                           '\n###CSV commands: ###',
+                           'including: read, write',
+                           'Type "help read" or "help write" to get more detailed instructions.\n\n',
+                           '\n###heatsheet command: get a type of heatsheet###',
+                           'Type "help heatsheet" to get more detailed instructions.\n\n',
+                           '\n###Other###',
+                           '\nNULL or "" will be treated as NULL in table',
                            'Use "" to input an empty field',
-                           'i.e. upsertXXX xxx "" ',
-                           
+                           'i.e. upsertXXX xxx "" \n\n',
                            ]) )
     
     def do_quit(self, line):

@@ -104,6 +104,7 @@ CREATE TABLE Swim (
         REFERENCES Participant (id),
     FOREIGN KEY (leg) REFERENCES Leg (leg),
     CONSTRAINT chk_time CHECK (t > 0),
+    --check the gender of the participant is the same as the event's gender
     CONSTRAINT chk_gender 
     CHECK (checkSwimGender(event_id, participant_id)),
     --for a relay race event, one school can have only one group in a heat
@@ -123,6 +124,9 @@ CREATE TABLE Swim (
 ----------Check functions-------------
 --------------------------------------
 --------------------------------------
+
+--for a relay race event, one school can have only one group in a heat
+--(heat_id, event_id, meet_name, org_id of participant, leg) must be unique
 DROP FUNCTION IF EXISTS checkRelaySchool(
     heat_id_value VARCHAR(10),
     event_id_value VARCHAR(10),
@@ -161,7 +165,7 @@ LANGUAGE plpgsql
 STABLE;
 
 
-
+--check the gender of the participant is the same as the event's gender
 DROP FUNCTION IF EXISTS checkSwimGender(
     event_id_value VARCHAR(10),
     participant_id_value VARCHAR(10)) CASCADE;
@@ -798,7 +802,7 @@ ORDER BY sw.meet_name, sw.event_id,
 
 
 
---time and rank of relay events
+--time and rank of relay events (without individual info)
 DROP VIEW IF EXISTS meet_group_time_rank CASCADE;
 CREATE VIEW meet_group_time_rank AS
 SELECT sw.meet_name, 
@@ -834,7 +838,7 @@ ORDER BY sw.meet_name, sw.event_id, group_event_rank ASC
 ;
 
 
---heat sheet of relay events
+--heat sheet of relay events(with both group info and individual info)
 DROP VIEW IF EXISTS meet_group_info;
 CREATE VIEW meet_group_info AS
 SELECT sw.meet_name, 
@@ -931,7 +935,7 @@ LANGUAGE plpgsql
 STABLE;
 
 
---get heat sheet of relay events inf a meet
+--get heat sheet of relay events inf a meet (without individual info)
 DROP FUNCTION IF EXISTS GetMeetInfoGroupOnly(
     meet_name_value VARCHAR(20));
 CREATE OR REPLACE FUNCTION GetMeetInfoGroupOnly (
@@ -1158,7 +1162,6 @@ DROP FUNCTION IF EXISTS GetEventType(
 CREATE OR REPLACE FUNCTION GetEventType (
     event_id_value VARCHAR(10))
 RETURNS VARCHAR(10)
-
 AS $$
     DECLARE
         event_type VARCHAR(10);
@@ -1283,6 +1286,7 @@ STABLE;
 
 --6.
 --For a Meet, display the scores of each school, sorted by scores.
+
 --function to calculate score, given event_id and event_rank
 --event_id is used to identify whether this event is a relay event
 DROP FUNCTION IF EXISTS calculateScore(
