@@ -34,8 +34,8 @@ class SwimMeetDBApp(cmd.Cmd):
     table_names = ['Org', 'Meet', 'Participant', 'Leg',
                  'Stroke', 'Distance', 'Event', 'StrokeOf',
                  'Heat', 'Swim']
-    #params = None   #connection parameters
-    params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
+    params = None   #connection parameters
+    #params = "host=localhost dbname=postgres user=ricedb password=zl15ricedb"
     
     
     '''connect to db'''
@@ -45,7 +45,7 @@ class SwimMeetDBApp(cmd.Cmd):
             print("*** invalid number of arguments.\nconnect [hostname] [dbname] [username] [password]")
             return
         try:
-            #self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
+            self.params = "host=" + l[0] + " dbname=" + l[1] + " user=" + l[2] + " password=" + l[3]
             conn = psycopg2.connect(self.params)
             cur = conn.cursor()
             conn.commit()

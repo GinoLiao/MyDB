@@ -13,7 +13,7 @@ psql -U ricedb -d postgres -f assignment6db.sql
 
 
 
-# I use PrettyTable library to print tables
+# We use PrettyTable library to print tables
 To install, run the setup.py file in folder "prettytable-0.7.2"
 by using command:
 
